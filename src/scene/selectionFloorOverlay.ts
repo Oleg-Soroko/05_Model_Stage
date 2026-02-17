@@ -82,6 +82,7 @@ export class SelectionFloorOverlay {
   private accentHex = DEFAULT_STATS_COLOR;
   private readonly accentColor = new THREE.Color(DEFAULT_STATS_COLOR);
   private statsVisible = true;
+  private placementVisible = false;
 
   public constructor(scene: THREE.Scene) {
     this.group = new THREE.Group();
@@ -146,13 +147,17 @@ export class SelectionFloorOverlay {
   }
 
   public setVisible(visible: boolean): void {
-    this.group.visible = visible;
-    this.infoMesh.visible = this.statsVisible;
+    this.placementVisible = visible;
+    const show = this.placementVisible && this.statsVisible;
+    this.group.visible = show;
+    this.infoMesh.visible = show;
   }
 
   public setStatsVisible(visible: boolean): void {
     this.statsVisible = visible;
-    this.infoMesh.visible = visible;
+    const show = this.placementVisible && this.statsVisible;
+    this.group.visible = show;
+    this.infoMesh.visible = show;
   }
 
   public setAccentColor(colorHex: string): void {

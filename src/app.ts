@@ -39,6 +39,8 @@ const WASD_LOOK_SENSITIVITY = 0.0022;
 const WASD_MOVE_SPEED = 7;
 const WASD_BOOST_MULTIPLIER = 2.2;
 const WASD_TARGET_DISTANCE = 5.5;
+const CAMERA_FOV_MIN = 20;
+const CAMERA_FOV_MAX = 100;
 
 const FALLBACK_MANIFEST: PacksManifest = {
   defaultVisibleCount: 3,
@@ -497,6 +499,30 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
   navigationButtonsRow.className = "nav-mode-row";
   navigationPanel.appendChild(navigationButtonsRow);
 
+  const navigationFovRow = document.createElement("label");
+  navigationFovRow.className = "nav-fov-row";
+
+  const navigationFovHeader = document.createElement("div");
+  navigationFovHeader.className = "nav-fov-header";
+  navigationFovRow.appendChild(navigationFovHeader);
+
+  const navigationFovLabel = document.createElement("span");
+  navigationFovLabel.className = "nav-fov-label";
+  navigationFovLabel.textContent = "Camera FOV";
+  navigationFovHeader.appendChild(navigationFovLabel);
+
+  const navigationFovValue = document.createElement("span");
+  navigationFovValue.className = "nav-fov-value";
+  navigationFovHeader.appendChild(navigationFovValue);
+
+  const navigationFovInput = document.createElement("input");
+  navigationFovInput.type = "range";
+  navigationFovInput.min = String(CAMERA_FOV_MIN);
+  navigationFovInput.max = String(CAMERA_FOV_MAX);
+  navigationFovInput.step = "1";
+  navigationFovInput.value = "42";
+  navigationFovRow.appendChild(navigationFovInput);
+
   const navigationButtons = new Map<NavigationMode, HTMLButtonElement>();
   function addNavigationModeButton(label: string, mode: NavigationMode): void {
     const button = document.createElement("button");
@@ -511,6 +537,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
   addNavigationModeButton("Locked", "locked");
   addNavigationModeButton("Free", "free");
   addNavigationModeButton("WASD", "wasd");
+  navigationPanel.appendChild(navigationFovRow);
   appRoot.appendChild(navigationPanel);
 
   const renderer = createRenderer(viewport);
@@ -520,6 +547,23 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120);
   camera.position.set(0, 2.8, 8.8);
+
+  function setCameraFov(nextFov: number): void {
+    const fov = clamp(nextFov, CAMERA_FOV_MIN, CAMERA_FOV_MAX);
+    camera.fov = fov;
+    camera.updateProjectionMatrix();
+    navigationFovInput.value = String(Math.round(fov));
+    navigationFovValue.textContent = `${Math.round(fov)}deg`;
+  }
+
+  navigationFovInput.addEventListener("input", () => {
+    const fov = Number(navigationFovInput.value);
+    if (!Number.isFinite(fov)) {
+      return;
+    }
+    setCameraFov(fov);
+  });
+  setCameraFov(camera.fov);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -735,10 +779,10 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
 
     wasdMoveDelta.set(0, 0, 0);
     if (wasdMoveState.forward) {
-      wasdMoveDelta.z -= 1;
+      wasdMoveDelta.z += 1;
     }
     if (wasdMoveState.backward) {
-      wasdMoveDelta.z += 1;
+      wasdMoveDelta.z -= 1;
     }
     if (wasdMoveState.left) {
       wasdMoveDelta.x -= 1;
@@ -1014,7 +1058,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
   }
 
   function updateSelectionFloorOverlayPlacement(): void {
-    if (selectedSlotIndex === null) {
+    if (selectedSlotIndex === null || !modelStatisticsVisible) {
       selectionFloorOverlay.setVisible(false);
       return;
     }

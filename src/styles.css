@@ -669,6 +669,39 @@ button:disabled {
   gap: 6px;
 }
 
+.nav-fov-row {
+  display: block;
+  margin-top: 8px;
+}
+
+.nav-fov-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.nav-fov-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #b9cbdd;
+}
+
+.nav-fov-value {
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: #d6e4f2;
+  font-weight: 700;
+}
+
+.nav-fov-row input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+
 .nav-mode-button {
   font-family: inherit;
   font-size: 0.7rem;
@@ -868,6 +901,14 @@ body.theme-dark .nav-mode-panel {
 
 body.theme-dark .nav-mode-title {
   color: #b8cde1;
+}
+
+body.theme-dark .nav-fov-label {
+  color: #afc6dc;
+}
+
+body.theme-dark .nav-fov-value {
+  color: #d4e4f2;
 }
 
 body.theme-dark .nav-mode-button {
