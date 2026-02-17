@@ -36,6 +36,7 @@ export interface HdriSettings {
   rotationDeg: number;
   intensity: number;
   backgroundIntensity: number;
+  backgroundBlur: number;
 }
 
 export interface StageHandle {
@@ -56,6 +57,7 @@ export interface StageHandle {
 }
 
 const FLOOR_SIZE = 280;
+const ORIGIN_DOT_RADIUS = 0.085;
 const GRID_TEXTURE_SIZE = 1024;
 const BG_TEX_WIDTH = 64;
 const BG_TEX_HEIGHT = 1024;
@@ -66,6 +68,7 @@ const LIGHT_FOG_COLOR_HEX = "#c5ced8";
 const DARK_FOG_COLOR_HEX = "#0a0f14";
 const STUDIO_FOG_COLOR_HEX = "#3f464f";
 const MAX_HDRI_INTENSITY = 8;
+const MAX_HDRI_BACKGROUND_BLUR = 1;
 const GRID_EDGE_TRANSPARENCY_MIN = 1;
 const GRID_EDGE_TRANSPARENCY_MAX = 20;
 
@@ -146,7 +149,8 @@ const DEFAULT_HDRI_SETTINGS: HdriSettings = {
   showBackground: false,
   rotationDeg: 0,
   intensity: 1,
-  backgroundIntensity: 1
+  backgroundIntensity: 1,
+  backgroundBlur: 0
 };
 
 function pickHdriLoader(fileName: string): RGBELoader | EXRLoader {
@@ -450,6 +454,7 @@ export function createStudioStage(
   scene.environment = null;
   scene.environmentIntensity = 1;
   scene.backgroundIntensity = 1;
+  scene.backgroundBlurriness = 0;
   scene.environmentRotation.set(0, 0, 0);
   scene.backgroundRotation.set(0, 0, 0);
 
@@ -514,9 +519,38 @@ export function createStudioStage(
   floor.receiveShadow = true;
   scene.add(floor);
 
+  const originDotGeometry = new THREE.CircleGeometry(ORIGIN_DOT_RADIUS, 32);
+  const originDotMaterial = new THREE.MeshBasicMaterial({
+    color: 0x9aa6b2,
+    transparent: true,
+    opacity: 0.9,
+    toneMapped: false,
+    depthWrite: false
+  });
+  const originDot = new THREE.Mesh(originDotGeometry, originDotMaterial);
+  originDot.rotation.x = -Math.PI / 2;
+  originDot.position.set(0, 0.004, 0);
+  originDot.renderOrder = 400;
+  originDot.frustumCulled = false;
+  scene.add(originDot);
+
+  const originDotColor = new THREE.Color();
+  const originDotHighlight = new THREE.Color(0xffffff);
+
   function applyGridRepeat(): void {
     const repeat = FLOOR_SIZE / Math.max(gridSettings.cellSize * 4, 0.1);
     gridTexture.repeat.set(repeat, repeat);
+  }
+
+  function updateOriginDotAppearance(): void {
+    const fallback = environmentPreset === "studio_clay" ? "#727981" : "#8c98a5";
+    originDotColor.set(sanitizeHexColor(gridSettings.gridMajorColor, fallback));
+    const lift = darkMode || environmentPreset === "studio_clay" ? 0.34 : 0.2;
+    originDotMaterial.color.copy(originDotColor).lerp(originDotHighlight, lift);
+    originDotMaterial.opacity =
+      clamp(0.42 + gridSettings.lineStrength * 0.52, 0.26, 0.92) *
+      clamp(gridSettings.gridMajorAlpha, 0, 1);
+    originDotMaterial.needsUpdate = true;
   }
 
   function applyHdriToScene(): void {
@@ -532,6 +566,10 @@ export function createStudioStage(
       0,
       MAX_HDRI_INTENSITY
     );
+    scene.backgroundBlurriness =
+      hasHdri && hdriSettings.showBackground
+        ? clamp(hdriSettings.backgroundBlur, 0, MAX_HDRI_BACKGROUND_BLUR)
+        : 0;
 
     scene.environment =
       hasHdri && hdriSettings.enabled && hdriEnvironmentTexture ? hdriEnvironmentTexture : null;
@@ -587,6 +625,7 @@ export function createStudioStage(
       fogSettings
     );
     drawDottedGridTexture(gridTexture, gridSettings);
+    updateOriginDotAppearance();
 
     if (environmentPreset === "studio_clay") {
       hemi.color.setHex(0xa8b4c2);
@@ -711,6 +750,7 @@ export function createStudioStage(
     drawFloorFadeTexture(floorFadeTexture, gridSettings.edgeTransparency);
     applyGridRepeat();
     updateFloorDistanceFade();
+    updateOriginDotAppearance();
     floorMaterial.roughness = gridSettings.roughness;
     floorMaterial.needsUpdate = true;
     paintBackgroundTexture(
@@ -738,6 +778,11 @@ export function createStudioStage(
         next.backgroundIntensity ?? hdriSettings.backgroundIntensity,
         0,
         MAX_HDRI_INTENSITY
+      ),
+      backgroundBlur: clamp(
+        next.backgroundBlur ?? hdriSettings.backgroundBlur,
+        0,
+        MAX_HDRI_BACKGROUND_BLUR
       )
     };
 
@@ -915,9 +960,12 @@ export function createStudioStage(
       scene.remove(rimLight);
       scene.remove(topLight);
       scene.remove(floor);
+      scene.remove(originDot);
 
       floor.geometry.dispose();
       floorMaterial.dispose();
+      originDotGeometry.dispose();
+      originDotMaterial.dispose();
       gridTexture.dispose();
       floorFadeTexture.dispose();
       backgroundTexture.dispose();

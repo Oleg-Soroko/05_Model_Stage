@@ -36,10 +36,13 @@ const ENV_PRESET_STORAGE_KEY = "ai-character-showcase.environment-preset.v1";
 const TRANSFORM_SCALE_MIN = 0.01;
 const TRANSFORM_SCALE_MAX = 8;
 const WASD_LOOK_SENSITIVITY = 0.0022;
-const WASD_MOVE_SPEED = 7;
+const WASD_MOVE_SPEED_DEFAULT = 7;
+const WASD_MOVE_SPEED_MIN = 0.5;
+const WASD_MOVE_SPEED_MAX = 40;
+const WASD_WHEEL_SPEED_FACTOR = 1.14;
 const WASD_BOOST_MULTIPLIER = 2.2;
 const WASD_TARGET_DISTANCE = 5.5;
-const CAMERA_FOV_MIN = 20;
+const CAMERA_FOV_MIN = 5;
 const CAMERA_FOV_MAX = 100;
 
 const FALLBACK_MANIFEST: PacksManifest = {
@@ -613,6 +616,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
   let transformDragging = false;
   let navigationMode: NavigationMode = "locked";
   let wasdLookActive = false;
+  let wasdMoveSpeed = WASD_MOVE_SPEED_DEFAULT;
   let wasdYaw = 0;
   let wasdPitch = 0;
   let wasdLastPointerX = 0;
@@ -666,7 +670,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
   function setControlsHintForNavigationMode(mode: NavigationMode): void {
     if (mode === "wasd") {
       controlsHint.textContent =
-        "WASD move | Q/E vertical | Shift boost | RMB look | LMB select | Wheel zoom disabled";
+        `WASD move | Q/E vertical | Shift boost | RMB look | LMB select | Wheel speed ${wasdMoveSpeed.toFixed(2)}`;
       return;
     }
 
@@ -800,7 +804,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     if (wasdMoveDelta.lengthSq() > 0) {
       wasdMoveDelta.normalize();
       const speedMultiplier = wasdMoveState.boost ? WASD_BOOST_MULTIPLIER : 1;
-      const distance = WASD_MOVE_SPEED * speedMultiplier * deltaSeconds;
+      const distance = wasdMoveSpeed * speedMultiplier * deltaSeconds;
 
       wasdForward.set(0, 0, -1).applyQuaternion(camera.quaternion);
       wasdRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
@@ -1386,7 +1390,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
       panel.setHdriSettings(stage.getHdriSettings());
       panel.setFogSettings(stage.getFogSettings());
       panel.setGridValues(stage.getGridSettings());
-      notify(`Environment preset: ${preset === "studio_clay" ? "Studio Clay" : "Showcase Grid"}`);
+      notify(`Environment preset: ${preset === "studio_clay" ? "Dark" : "Light"}`);
     },
     onSaveEnvironmentPreset: () => {
       saveCurrentEnvironmentPreset();
@@ -1421,6 +1425,10 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     },
     onHdriBackgroundIntensityChange: (backgroundIntensity) => {
       stage.setHdriSettings({ backgroundIntensity });
+      panel.setHdriSettings(stage.getHdriSettings());
+    },
+    onHdriBackgroundBlurChange: (backgroundBlur) => {
+      stage.setHdriSettings({ backgroundBlur });
       panel.setHdriSettings(stage.getHdriSettings());
     },
     onFogEnabledChange: (enabled) => {
@@ -1656,6 +1664,22 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     event.preventDefault();
   }
 
+  function onWheel(event: WheelEvent): void {
+    if (navigationMode !== "wasd") {
+      return;
+    }
+
+    const normalizedScroll = clamp(Math.abs(event.deltaY) / 120, 0.2, 4);
+    const factor = Math.pow(WASD_WHEEL_SPEED_FACTOR, normalizedScroll);
+    if (event.deltaY < 0) {
+      wasdMoveSpeed = clamp(wasdMoveSpeed * factor, WASD_MOVE_SPEED_MIN, WASD_MOVE_SPEED_MAX);
+    } else if (event.deltaY > 0) {
+      wasdMoveSpeed = clamp(wasdMoveSpeed / factor, WASD_MOVE_SPEED_MIN, WASD_MOVE_SPEED_MAX);
+    }
+    setControlsHintForNavigationMode(navigationMode);
+    event.preventDefault();
+  }
+
   function onResize(): void {
     resizeRenderer(renderer, camera, viewport);
   }
@@ -1811,6 +1835,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     renderer.domElement.removeEventListener("pointermove", onPointerMove);
     renderer.domElement.removeEventListener("pointerup", onPointerUp);
     renderer.domElement.removeEventListener("pointerleave", onPointerLeave);
+    renderer.domElement.removeEventListener("wheel", onWheel);
     renderer.domElement.removeEventListener("contextmenu", onContextMenu);
     transformControls.removeEventListener("dragging-changed", onTransformDraggingChanged);
     transformControls.removeEventListener("objectChange", onTransformObjectChange);
@@ -1841,6 +1866,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
   renderer.domElement.addEventListener("pointermove", onPointerMove);
   renderer.domElement.addEventListener("pointerup", onPointerUp);
   renderer.domElement.addEventListener("pointerleave", onPointerLeave);
+  renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
   renderer.domElement.addEventListener("contextmenu", onContextMenu);
   window.addEventListener("resize", onResize);
   window.addEventListener("keydown", onKeyDown);

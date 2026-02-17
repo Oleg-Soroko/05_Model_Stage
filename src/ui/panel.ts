@@ -38,6 +38,7 @@ interface ShowcasePanelCallbacks {
   onHdriRotationChange: (rotationDeg: number) => void;
   onHdriIntensityChange: (intensity: number) => void;
   onHdriBackgroundIntensityChange: (intensity: number) => void;
+  onHdriBackgroundBlurChange: (blur: number) => void;
   onFogEnabledChange: (enabled: boolean) => void;
   onFogColorChange: (color: string) => void;
   onFogDensityChange: (density: number) => void;
@@ -89,6 +90,7 @@ export interface ShowcasePanel {
     rotationDeg: number;
     intensity: number;
     backgroundIntensity: number;
+    backgroundBlur: number;
   }) => void;
   setFogDensity: (density: number) => void;
   setFogSettings: (values: {
@@ -170,7 +172,7 @@ export function createShowcasePanel(
 
   const header = document.createElement("h1");
   header.className = "panel-title";
-  header.textContent = "AI Character Showcase";
+  header.textContent = "MODEL STAGE";
   panel.appendChild(header);
 
   const subtitle = document.createElement("p");
@@ -369,6 +371,11 @@ export function createShowcasePanel(
     noiseStrength: 0.08,
     radiusPx: 20
   };
+  const uiTextConfig = {
+    primaryColor: "#e6effa",
+    secondaryColor: "#c4d5e7",
+    mutedColor: "#9db2c9"
+  };
 
   function applyUiGlassConfig(): void {
     panel.style.setProperty("--ui-glass-blur", `${uiGlassConfig.blurPx.toFixed(1)}px`);
@@ -378,6 +385,12 @@ export function createShowcasePanel(
     panel.style.setProperty("--ui-glass-sheen", uiGlassConfig.sheenStrength.toFixed(2));
     panel.style.setProperty("--ui-glass-noise", uiGlassConfig.noiseStrength.toFixed(2));
     panel.style.setProperty("--ui-glass-radius", `${uiGlassConfig.radiusPx.toFixed(1)}px`);
+  }
+
+  function applyUiTextConfig(): void {
+    container.style.setProperty("--ui-text-primary", uiTextConfig.primaryColor);
+    container.style.setProperty("--ui-text-secondary", uiTextConfig.secondaryColor);
+    container.style.setProperty("--ui-text-muted", uiTextConfig.mutedColor);
   }
 
   const visibleRow = document.createElement("label");
@@ -543,7 +556,7 @@ export function createShowcasePanel(
   environmentPresetRow.textContent = "Environment Preset";
   const environmentPresetSelect = document.createElement("select");
   environmentPresetSelect.innerHTML =
-    '<option value="showcase_grid">Showcase Grid</option><option value="studio_clay">Studio Clay Ref</option>';
+    '<option value="showcase_grid">Light</option><option value="studio_clay">Dark</option>';
   environmentPresetRow.appendChild(environmentPresetSelect);
   environmentTabPanel.appendChild(environmentPresetRow);
 
@@ -632,6 +645,18 @@ export function createShowcasePanel(
     }
   );
   hdriSection.appendChild(hdriBackgroundIntensitySlider.row);
+
+  const hdriBackgroundBlurSlider = makeSliderRow(
+    "HDRI Blur (Low -> Very High)",
+    0,
+    1,
+    0.01,
+    2,
+    (value) => {
+      callbacks.onHdriBackgroundBlurChange(value);
+    }
+  );
+  hdriSection.appendChild(hdriBackgroundBlurSlider.row);
 
   const fogEnabledToggle = makeToggleRow("Enable Fog", (enabled) => {
     callbacks.onFogEnabledChange(enabled);
@@ -799,6 +824,24 @@ export function createShowcasePanel(
   });
   uiConfigTabPanel.appendChild(uiRadiusSlider.row);
 
+  const uiPrimaryTextColorRow = makeColorRow("Text Primary Color", (value) => {
+    uiTextConfig.primaryColor = value;
+    applyUiTextConfig();
+  });
+  uiConfigTabPanel.appendChild(uiPrimaryTextColorRow.row);
+
+  const uiSecondaryTextColorRow = makeColorRow("Text Secondary Color", (value) => {
+    uiTextConfig.secondaryColor = value;
+    applyUiTextConfig();
+  });
+  uiConfigTabPanel.appendChild(uiSecondaryTextColorRow.row);
+
+  const uiMutedTextColorRow = makeColorRow("Text Muted Color", (value) => {
+    uiTextConfig.mutedColor = value;
+    applyUiTextConfig();
+  });
+  uiConfigTabPanel.appendChild(uiMutedTextColorRow.row);
+
   const statusLine = document.createElement("div");
   statusLine.className = "status-line";
   statusLine.textContent = "Ready";
@@ -848,7 +891,11 @@ export function createShowcasePanel(
   uiNoiseSlider.valueLabel.textContent = formatSliderValue(uiGlassConfig.noiseStrength, 2);
   uiRadiusSlider.input.value = String(uiGlassConfig.radiusPx);
   uiRadiusSlider.valueLabel.textContent = formatSliderValue(uiGlassConfig.radiusPx, 1);
+  uiPrimaryTextColorRow.input.value = uiTextConfig.primaryColor;
+  uiSecondaryTextColorRow.input.value = uiTextConfig.secondaryColor;
+  uiMutedTextColorRow.input.value = uiTextConfig.mutedColor;
   applyUiGlassConfig();
+  applyUiTextConfig();
 
   function setHdriControlsEnabled(enabled: boolean): void {
     hdriEnabledToggle.input.disabled = !enabled;
@@ -856,6 +903,7 @@ export function createShowcasePanel(
     hdriRotationSlider.input.disabled = !enabled;
     hdriIntensitySlider.input.disabled = !enabled;
     hdriBackgroundIntensitySlider.input.disabled = !enabled;
+    hdriBackgroundBlurSlider.input.disabled = !enabled;
   }
 
   setHdriControlsEnabled(false);
@@ -1063,6 +1111,9 @@ export function createShowcasePanel(
         values.backgroundIntensity,
         2
       );
+
+      hdriBackgroundBlurSlider.input.value = String(values.backgroundBlur);
+      hdriBackgroundBlurSlider.valueLabel.textContent = formatSliderValue(values.backgroundBlur, 2);
     },
 
     setFogDensity(density) {

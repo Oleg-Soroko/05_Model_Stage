@@ -39,8 +39,88 @@ interface WireframeStyle {
   thickness: number;
 }
 
+function materialToPbrSource(material: THREE.Material): THREE.Material {
+  const candidate = material as THREE.Material & Record<string, unknown>;
+  if (
+    (candidate.isMeshStandardMaterial as boolean | undefined) ||
+    (candidate.isMeshPhysicalMaterial as boolean | undefined)
+  ) {
+    return material;
+  }
+
+  const sourceColor = candidate.color instanceof THREE.Color ? candidate.color : null;
+  const sourceEmissive = candidate.emissive instanceof THREE.Color ? candidate.emissive : null;
+  const sourceShininess =
+    typeof candidate.shininess === "number" ? Number(candidate.shininess) : null;
+  const roughnessFromShininess =
+    sourceShininess !== null ? clamp(Math.sqrt(2 / (sourceShininess + 2)), 0.06, 1) : 1;
+
+  const converted = new THREE.MeshStandardMaterial({
+    name: material.name,
+    color: sourceColor ? sourceColor.clone() : new THREE.Color(0xffffff),
+    map: (candidate.map as THREE.Texture | null | undefined) ?? null,
+    alphaMap: (candidate.alphaMap as THREE.Texture | null | undefined) ?? null,
+    aoMap: (candidate.aoMap as THREE.Texture | null | undefined) ?? null,
+    aoMapIntensity:
+      typeof candidate.aoMapIntensity === "number" ? Number(candidate.aoMapIntensity) : 1,
+    bumpMap: (candidate.bumpMap as THREE.Texture | null | undefined) ?? null,
+    bumpScale: typeof candidate.bumpScale === "number" ? Number(candidate.bumpScale) : 1,
+    displacementMap: (candidate.displacementMap as THREE.Texture | null | undefined) ?? null,
+    displacementScale:
+      typeof candidate.displacementScale === "number" ? Number(candidate.displacementScale) : 1,
+    emissive: sourceEmissive ? sourceEmissive.clone() : new THREE.Color(0x000000),
+    emissiveMap: (candidate.emissiveMap as THREE.Texture | null | undefined) ?? null,
+    emissiveIntensity:
+      typeof candidate.emissiveIntensity === "number" ? Number(candidate.emissiveIntensity) : 1,
+    lightMap: (candidate.lightMap as THREE.Texture | null | undefined) ?? null,
+    lightMapIntensity:
+      typeof candidate.lightMapIntensity === "number" ? Number(candidate.lightMapIntensity) : 1,
+    metalnessMap: (candidate.metalnessMap as THREE.Texture | null | undefined) ?? null,
+    roughnessMap: (candidate.roughnessMap as THREE.Texture | null | undefined) ?? null,
+    normalMap: (candidate.normalMap as THREE.Texture | null | undefined) ?? null,
+    normalScale:
+      candidate.normalScale instanceof THREE.Vector2
+        ? candidate.normalScale.clone()
+        : new THREE.Vector2(1, 1),
+    transparent: material.transparent,
+    opacity: material.opacity,
+    side: material.side,
+    flatShading: typeof candidate.flatShading === "boolean" ? candidate.flatShading : false,
+    metalness:
+      typeof candidate.metalness === "number" ? clamp(Number(candidate.metalness), 0, 1) : 0,
+    roughness:
+      typeof candidate.roughness === "number"
+        ? clamp(Number(candidate.roughness), 0, 1)
+        : roughnessFromShininess
+  });
+
+  converted.alphaTest = material.alphaTest;
+  converted.depthTest = material.depthTest;
+  converted.depthWrite = material.depthWrite;
+  converted.blending = material.blending;
+  converted.blendSrc = material.blendSrc;
+  converted.blendDst = material.blendDst;
+  converted.blendEquation = material.blendEquation;
+  converted.blendSrcAlpha = material.blendSrcAlpha;
+  converted.blendDstAlpha = material.blendDstAlpha;
+  converted.blendEquationAlpha = material.blendEquationAlpha;
+  converted.premultipliedAlpha = material.premultipliedAlpha;
+  converted.dithering = material.dithering;
+  converted.polygonOffset = material.polygonOffset;
+  converted.polygonOffsetFactor = material.polygonOffsetFactor;
+  converted.polygonOffsetUnits = material.polygonOffsetUnits;
+  converted.toneMapped = material.toneMapped;
+  converted.visible = material.visible;
+  converted.envMapIntensity =
+    typeof candidate.envMapIntensity === "number" ? Number(candidate.envMapIntensity) : 1.35;
+  converted.needsUpdate = true;
+  return converted;
+}
+
 function cloneMaterialWithTextures(material: THREE.Material): THREE.Material {
-  const cloned = material.clone();
+  const source = materialToPbrSource(material);
+  const cloned =
+    source === material ? material.clone() : (source as THREE.MeshStandardMaterial).clone();
   const keys = Object.keys(cloned) as Array<keyof THREE.Material>;
   for (const key of keys) {
     const value = (cloned as unknown as Record<string, unknown>)[key as string];
