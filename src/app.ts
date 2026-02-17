@@ -13,7 +13,10 @@ import {
   createStudioStage,
   type EnvironmentPreset,
   type FogSettings,
-  type GridFloorSettings
+  type GridFloorSettings,
+  type HdriSettings,
+  type LightingRigSettings,
+  type RigLightType
 } from "./scene/stage";
 import { createAppStore, type AppStatusLevel } from "./state/store";
 import type {
@@ -59,6 +62,23 @@ interface SavedEnvironmentPresetV1 {
   gridSettings: Partial<GridFloorSettings>;
 }
 
+interface SavedEnvironmentPresetV2 {
+  version: 2;
+  savedAtIso: string;
+  environmentPreset: EnvironmentPreset;
+  fogSettings: Partial<FogSettings>;
+  gridSettings: Partial<GridFloorSettings>;
+  hdriSettings: Partial<
+    Pick<
+      HdriSettings,
+      "enabled" | "showBackground" | "rotationDeg" | "intensity" | "backgroundIntensity" | "backgroundBlur"
+    >
+  >;
+  lightingRigSettings: LightingRigSettings;
+}
+
+type SavedEnvironmentPreset = SavedEnvironmentPresetV1 | SavedEnvironmentPresetV2;
+
 type TransformAxis = "x" | "y" | "z";
 type NavigationMode = "locked" | "free" | "wasd";
 
@@ -66,7 +86,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function parseSavedEnvironmentPreset(rawValue: string | null): SavedEnvironmentPresetV1 | null {
+function parseSavedEnvironmentPreset(rawValue: string | null): SavedEnvironmentPreset | null {
   if (!rawValue) {
     return null;
   }
@@ -76,15 +96,11 @@ function parseSavedEnvironmentPreset(rawValue: string | null): SavedEnvironmentP
     if (!isRecord(parsed)) {
       return null;
     }
-    const version = parsed.version;
+    const version = typeof parsed.version === "number" ? parsed.version : null;
     const savedAtIso = parsed.savedAtIso;
     const environmentPreset = parsed.environmentPreset;
     const fogSettings = parsed.fogSettings;
     const gridSettings = parsed.gridSettings;
-
-    if (version !== 1) {
-      return null;
-    }
     if (typeof savedAtIso !== "string") {
       return null;
     }
@@ -95,19 +111,41 @@ function parseSavedEnvironmentPreset(rawValue: string | null): SavedEnvironmentP
       return null;
     }
 
-    return {
-      version: 1,
-      savedAtIso,
-      environmentPreset,
-      fogSettings,
-      gridSettings
-    };
+    if (version === 1) {
+      return {
+        version: 1,
+        savedAtIso,
+        environmentPreset,
+        fogSettings,
+        gridSettings
+      };
+    }
+
+    if (version === 2) {
+      const hdriSettings = parsed.hdriSettings;
+      const lightingRigSettings = parsed.lightingRigSettings;
+      if (!isRecord(hdriSettings) || !isRecord(lightingRigSettings)) {
+        return null;
+      }
+
+      return {
+        version: 2,
+        savedAtIso,
+        environmentPreset,
+        fogSettings,
+        gridSettings,
+        hdriSettings: hdriSettings as SavedEnvironmentPresetV2["hdriSettings"],
+        lightingRigSettings: lightingRigSettings as unknown as LightingRigSettings
+      };
+    }
+
+    return null;
   } catch {
     return null;
   }
 }
 
-function readSavedEnvironmentPreset(): SavedEnvironmentPresetV1 | null {
+function readSavedEnvironmentPreset(): SavedEnvironmentPreset | null {
   try {
     return parseSavedEnvironmentPreset(localStorage.getItem(ENV_PRESET_STORAGE_KEY));
   } catch {
@@ -115,7 +153,7 @@ function readSavedEnvironmentPreset(): SavedEnvironmentPresetV1 | null {
   }
 }
 
-function writeSavedEnvironmentPreset(value: SavedEnvironmentPresetV1): boolean {
+function writeSavedEnvironmentPreset(value: SavedEnvironmentPreset): boolean {
   try {
     localStorage.setItem(ENV_PRESET_STORAGE_KEY, JSON.stringify(value));
     return true;
@@ -148,6 +186,31 @@ function parseVisibleCount(value: unknown): VisibleCount {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function isShadowCapableRigType(type: RigLightType): boolean {
+  return type === "directional" || type === "point" || type === "spot";
+}
+
+function getLightingShadowUsage(lightingRig: LightingRigSettings): {
+  activeShadowLights: number;
+  maxShadowLights: number;
+} {
+  let activeShadowLights = 0;
+  for (const slot of lightingRig.lights) {
+    if (
+      slot.enabled &&
+      slot.castShadow &&
+      slot.type !== "none" &&
+      isShadowCapableRigType(slot.type)
+    ) {
+      activeShadowLights += 1;
+    }
+  }
+  return {
+    activeShadowLights,
+    maxShadowLights: 2
+  };
 }
 
 function formatNumber(value: number): string {
@@ -828,6 +891,45 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     setNavigationMode("wasd");
   });
 
+  function toSerializableHdriSettings(
+    settings: HdriSettings
+  ): SavedEnvironmentPresetV2["hdriSettings"] {
+    return {
+      enabled: settings.enabled,
+      showBackground: settings.showBackground,
+      rotationDeg: settings.rotationDeg,
+      intensity: settings.intensity,
+      backgroundIntensity: settings.backgroundIntensity,
+      backgroundBlur: settings.backgroundBlur
+    };
+  }
+
+  function toSavedPresetV2(snapshot: SavedEnvironmentPreset): SavedEnvironmentPresetV2 {
+    if (snapshot.version === 2) {
+      return {
+        ...snapshot,
+        hdriSettings: { ...snapshot.hdriSettings },
+        lightingRigSettings: snapshot.lightingRigSettings
+      };
+    }
+
+    return {
+      version: 2,
+      savedAtIso: snapshot.savedAtIso,
+      environmentPreset: snapshot.environmentPreset,
+      fogSettings: snapshot.fogSettings,
+      gridSettings: snapshot.gridSettings,
+      hdriSettings: toSerializableHdriSettings(stage.getHdriSettings()),
+      lightingRigSettings: stage.getLightingRigSettings()
+    };
+  }
+
+  function syncLightingRigPanelState(): void {
+    const rig = stage.getLightingRigSettings();
+    panel.setLightingRigSettings(rig);
+    panel.setLightingShadowUsage(getLightingShadowUsage(rig));
+  }
+
   function updateSavedPresetIndicator(): void {
     const savedPreset = readSavedEnvironmentPreset();
     if (!savedPreset) {
@@ -845,12 +947,14 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
   }
 
   function saveCurrentEnvironmentPreset(): void {
-    const snapshot: SavedEnvironmentPresetV1 = {
-      version: 1,
+    const snapshot: SavedEnvironmentPresetV2 = {
+      version: 2,
       savedAtIso: new Date().toISOString(),
       environmentPreset: stage.getEnvironmentPreset(),
       fogSettings: stage.getFogSettings(),
-      gridSettings: stage.getGridSettings()
+      gridSettings: stage.getGridSettings(),
+      hdriSettings: toSerializableHdriSettings(stage.getHdriSettings()),
+      lightingRigSettings: stage.getLightingRigSettings()
     };
 
     const saved = writeSavedEnvironmentPreset(snapshot);
@@ -860,27 +964,34 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     }
 
     updateSavedPresetIndicator();
-    notify("Custom environment preset saved.");
+    notify("Custom stage preset saved.");
   }
 
   function loadSavedEnvironmentPreset(): void {
     const snapshot = readSavedEnvironmentPreset();
     if (!snapshot) {
       updateSavedPresetIndicator();
-      notify("No saved environment preset found.", "warning");
+      notify("No saved stage preset found.", "warning");
       return;
     }
+    const upgraded = toSavedPresetV2(snapshot);
+    if (snapshot.version === 1) {
+      writeSavedEnvironmentPreset(upgraded);
+    }
 
-    stage.setEnvironmentPreset(snapshot.environmentPreset);
-    stage.setFogSettings(snapshot.fogSettings);
-    stage.setGridSettings(snapshot.gridSettings);
+    stage.setEnvironmentPreset(upgraded.environmentPreset);
+    stage.setFogSettings(upgraded.fogSettings);
+    stage.setGridSettings(upgraded.gridSettings);
+    stage.setHdriSettings(upgraded.hdriSettings);
+    stage.setLightingRigSettings(upgraded.lightingRigSettings);
 
     panel.setEnvironmentPreset(stage.getEnvironmentPreset());
     panel.setFogSettings(stage.getFogSettings());
     panel.setGridValues(stage.getGridSettings());
     panel.setHdriSettings(stage.getHdriSettings());
+    syncLightingRigPanelState();
     updateSavedPresetIndicator();
-    notify(`Loaded saved preset (${formatSavedPresetTime(snapshot.savedAtIso)}).`);
+    notify(`Loaded saved preset (${formatSavedPresetTime(upgraded.savedAtIso)}).`);
   }
 
   function updateCameraTargetGoal(target: THREE.Vector3): void {
@@ -1347,6 +1458,15 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     }
   }
 
+  function patchLightingRig(
+    next: Partial<Omit<LightingRigSettings, "lights">> & {
+      lights?: Array<Partial<LightingRigSettings["lights"][number]>>;
+    }
+  ): void {
+    stage.setLightingRigSettings(next);
+    syncLightingRigPanelState();
+  }
+
   panel = createShowcasePanel(appRoot, {
     onVisibleCountChange: (count) => {
       void onVisibleCountChange(count);
@@ -1390,7 +1510,7 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
       panel.setHdriSettings(stage.getHdriSettings());
       panel.setFogSettings(stage.getFogSettings());
       panel.setGridValues(stage.getGridSettings());
-      notify(`Environment preset: ${preset === "studio_clay" ? "Dark" : "Light"}`);
+      notify(`Stage preset: ${preset === "studio_clay" ? "Dark" : "Light"}`);
     },
     onSaveEnvironmentPreset: () => {
       saveCurrentEnvironmentPreset();
@@ -1430,6 +1550,62 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     onHdriBackgroundBlurChange: (backgroundBlur) => {
       stage.setHdriSettings({ backgroundBlur });
       panel.setHdriSettings(stage.getHdriSettings());
+    },
+    onLightingRigEnabledChange: (enabled) => {
+      patchLightingRig({ enabled });
+    },
+    onLightingPresetApply: (presetId) => {
+      stage.applyLightingPreset(presetId);
+      syncLightingRigPanelState();
+      const applied = stage.getLightingRigSettings();
+      notify(`Lighting preset applied: ${applied.presetId}`);
+    },
+    onLightingSlotSelect: (_slotIndex) => {
+      syncLightingRigPanelState();
+    },
+    onLightingSlotEnabledChange: (slotIndex, enabled) => {
+      patchLightingRig({
+        lights: [{ slotIndex, enabled }]
+      });
+    },
+    onLightingSlotTypeChange: (slotIndex, type) => {
+      patchLightingRig({
+        lights: [{ slotIndex, type }]
+      });
+    },
+    onLightingSlotColorChange: (slotIndex, color) => {
+      patchLightingRig({
+        lights: [{ slotIndex, color }]
+      });
+    },
+    onLightingSlotIntensityChange: (slotIndex, intensity) => {
+      patchLightingRig({
+        lights: [{ slotIndex, intensity }]
+      });
+    },
+    onLightingSlotPositionChange: (slotIndex, axis, value) => {
+      const current = stage.getLightingRigSettings().lights[slotIndex];
+      const nextPosition = {
+        x: current.position.x,
+        y: current.position.y,
+        z: current.position.z
+      };
+      nextPosition[axis] = value;
+      patchLightingRig({
+        lights: [{ slotIndex, position: nextPosition }]
+      });
+    },
+    onLightingSlotShadowChange: (slotIndex, castShadow) => {
+      patchLightingRig({
+        lights: [{ slotIndex, castShadow }]
+      });
+      if (castShadow) {
+        const latest = stage.getLightingRigSettings();
+        const slot = latest.lights[slotIndex];
+        if (!slot.castShadow) {
+          notify("Shadow limit reached (max 2).", "warning");
+        }
+      }
     },
     onFogEnabledChange: (enabled) => {
       stage.setFogSettings({ enabled });
@@ -1506,6 +1682,8 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
 
   applyUiTheme();
   panel.setEnvironmentPreset(stage.getEnvironmentPreset());
+  panel.setLightingPresetOptions(stage.getLightingPresetOptions());
+  syncLightingRigPanelState();
   panel.setHdriSettings(stage.getHdriSettings());
   panel.setFogSettings(stage.getFogSettings());
   const initialGridSettings = stage.getGridSettings();
@@ -1802,9 +1980,10 @@ export async function mountApp(appRoot: HTMLElement): Promise<void> {
     for (const slot of slots) {
       slot.update(dt);
     }
+    updateCameraTargetGoal(cameraTargetGoal);
+    stage.setLightingFocusTarget(cameraTargetGoal);
 
     if (navigationMode === "locked") {
-      updateCameraTargetGoal(cameraTargetGoal);
       previousTarget.copy(controls.target);
       const follow = 1 - Math.exp(-dt * CAMERA_TARGET_FOLLOW);
       controls.target.lerp(cameraTargetGoal, follow);

@@ -39,6 +39,45 @@ export interface HdriSettings {
   backgroundBlur: number;
 }
 
+export type RigLightType =
+  | "none"
+  | "directional"
+  | "point"
+  | "spot"
+  | "hemisphere";
+
+export type RigLightSlotIndex = 0 | 1 | 2 | 3 | 4;
+
+export interface RigLightSlotSettings {
+  slotIndex: RigLightSlotIndex;
+  enabled: boolean;
+  type: RigLightType;
+  color: string;
+  intensity: number;
+  position: { x: number; y: number; z: number };
+  castShadow: boolean;
+}
+
+export interface LightingRigSettings {
+  enabled: boolean;
+  presetId: string;
+  followSelected: boolean;
+  lights: [
+    RigLightSlotSettings,
+    RigLightSlotSettings,
+    RigLightSlotSettings,
+    RigLightSlotSettings,
+    RigLightSlotSettings
+  ];
+}
+
+export interface LightingPresetOption {
+  id: string;
+  label: string;
+  description: string;
+  lightCount: number;
+}
+
 export interface StageHandle {
   getFogDensity: () => number;
   setFogDensity: (density: number) => void;
@@ -51,6 +90,15 @@ export interface StageHandle {
   loadHdri: (file: File) => Promise<void>;
   getGridSettings: () => GridFloorSettings;
   setGridSettings: (settings: Partial<GridFloorSettings>) => void;
+  getLightingRigSettings: () => LightingRigSettings;
+  setLightingRigSettings: (
+    next: Partial<Omit<LightingRigSettings, "lights">> & {
+      lights?: Partial<RigLightSlotSettings>[];
+    }
+  ) => void;
+  getLightingPresetOptions: () => LightingPresetOption[];
+  applyLightingPreset: (presetId: string) => void;
+  setLightingFocusTarget: (target: THREE.Vector3 | null) => void;
   isDarkMode: () => boolean;
   setDarkMode: (enabled: boolean) => void;
   dispose: () => void;
@@ -71,6 +119,30 @@ const MAX_HDRI_INTENSITY = 8;
 const MAX_HDRI_BACKGROUND_BLUR = 1;
 const GRID_EDGE_TRANSPARENCY_MIN = 1;
 const GRID_EDGE_TRANSPARENCY_MAX = 20;
+const LIGHT_RIG_SLOT_COUNT = 5;
+const MAX_SHADOW_LIGHTS = 2;
+const LIGHT_POSITION_MIN = -40;
+const LIGHT_POSITION_MAX = 40;
+const LIGHT_INTENSITY_MAX = 8;
+const DEFAULT_LIGHT_RIG_ANCHOR = new THREE.Vector3(0, 1, 0);
+
+type RigLightObject =
+  | THREE.DirectionalLight
+  | THREE.PointLight
+  | THREE.SpotLight
+  | THREE.HemisphereLight;
+
+interface RigLightSlotRuntime {
+  light: RigLightObject | null;
+  targetObject: THREE.Object3D | null;
+}
+
+interface LightingPresetDefinition {
+  id: string;
+  label: string;
+  description: string;
+  settings: LightingRigSettings;
+}
 
 const LIGHT_GRID_COLORS = {
   backgroundColor: "#c5ced8",
@@ -152,6 +224,305 @@ const DEFAULT_HDRI_SETTINGS: HdriSettings = {
   backgroundIntensity: 1,
   backgroundBlur: 0
 };
+
+function makeRigSlot(
+  slotIndex: RigLightSlotIndex,
+  partial: Partial<Omit<RigLightSlotSettings, "slotIndex">> = {}
+): RigLightSlotSettings {
+  return {
+    slotIndex,
+    enabled: partial.enabled ?? false,
+    type: partial.type ?? "none",
+    color: partial.color ?? "#ffffff",
+    intensity: partial.intensity ?? 1,
+    position: {
+      x: partial.position?.x ?? 0,
+      y: partial.position?.y ?? 5,
+      z: partial.position?.z ?? 0
+    },
+    castShadow: partial.castShadow ?? false
+  };
+}
+
+function cloneRigSlot(slot: RigLightSlotSettings): RigLightSlotSettings {
+  return {
+    slotIndex: slot.slotIndex,
+    enabled: slot.enabled,
+    type: slot.type,
+    color: slot.color,
+    intensity: slot.intensity,
+    position: { ...slot.position },
+    castShadow: slot.castShadow
+  };
+}
+
+function cloneLightingRigSettings(settings: LightingRigSettings): LightingRigSettings {
+  return {
+    enabled: settings.enabled,
+    presetId: settings.presetId,
+    followSelected: settings.followSelected,
+    lights: [
+      cloneRigSlot(settings.lights[0]),
+      cloneRigSlot(settings.lights[1]),
+      cloneRigSlot(settings.lights[2]),
+      cloneRigSlot(settings.lights[3]),
+      cloneRigSlot(settings.lights[4])
+    ]
+  };
+}
+
+function sanitizeRigLightType(value: unknown): RigLightType {
+  if (
+    value === "none" ||
+    value === "directional" ||
+    value === "point" ||
+    value === "spot" ||
+    value === "hemisphere"
+  ) {
+    return value;
+  }
+  return "none";
+}
+
+function canTypeCastShadow(type: RigLightType): boolean {
+  return type === "directional" || type === "point" || type === "spot";
+}
+
+function countPresetLights(lights: RigLightSlotSettings[]): number {
+  let count = 0;
+  for (const slot of lights) {
+    if (slot.enabled && slot.type !== "none") {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+const DEFAULT_LIGHTING_RIG_SETTINGS: LightingRigSettings = {
+  enabled: true,
+  presetId: "default_neutral",
+  followSelected: true,
+  lights: [
+    makeRigSlot(0, {
+      enabled: true,
+      type: "directional",
+      color: "#fff8f0",
+      intensity: 1.25,
+      position: { x: 6.4, y: 8.8, z: 6.2 },
+      castShadow: true
+    }),
+    makeRigSlot(1, {
+      enabled: true,
+      type: "directional",
+      color: "#c7d4ea",
+      intensity: 0.55,
+      position: { x: -6.2, y: 4.3, z: -4.8 },
+      castShadow: false
+    }),
+    makeRigSlot(2),
+    makeRigSlot(3),
+    makeRigSlot(4)
+  ]
+};
+
+const BUILT_IN_LIGHTING_PRESETS: LightingPresetDefinition[] = [
+  {
+    id: "default_neutral",
+    label: "Default Neutral",
+    description: "Balanced key and fill, clean all-purpose look.",
+    settings: cloneLightingRigSettings(DEFAULT_LIGHTING_RIG_SETTINGS)
+  },
+  {
+    id: "three_point_studio",
+    label: "Three-Point Studio",
+    description: "Classic key, fill, and rim studio setup.",
+    settings: {
+      enabled: true,
+      presetId: "three_point_studio",
+      followSelected: true,
+      lights: [
+        makeRigSlot(0, {
+          enabled: true,
+          type: "directional",
+          color: "#fffdf6",
+          intensity: 1.4,
+          position: { x: 6.6, y: 8.9, z: 6.0 },
+          castShadow: true
+        }),
+        makeRigSlot(1, {
+          enabled: true,
+          type: "directional",
+          color: "#c7d6ec",
+          intensity: 0.52,
+          position: { x: -5.6, y: 4.5, z: 3.9 },
+          castShadow: false
+        }),
+        makeRigSlot(2, {
+          enabled: true,
+          type: "directional",
+          color: "#f0f5ff",
+          intensity: 0.84,
+          position: { x: -6.8, y: 7.2, z: -7.6 },
+          castShadow: false
+        }),
+        makeRigSlot(3),
+        makeRigSlot(4)
+      ]
+    }
+  },
+  {
+    id: "low_key_contrast",
+    label: "Low Key Contrast",
+    description: "High contrast dramatic setup with deep shadows.",
+    settings: {
+      enabled: true,
+      presetId: "low_key_contrast",
+      followSelected: true,
+      lights: [
+        makeRigSlot(0, {
+          enabled: true,
+          type: "directional",
+          color: "#f9fbff",
+          intensity: 1.28,
+          position: { x: 7.1, y: 9.2, z: 3.1 },
+          castShadow: true
+        }),
+        makeRigSlot(1, {
+          enabled: true,
+          type: "directional",
+          color: "#73849f",
+          intensity: 0.3,
+          position: { x: -8.4, y: 3.5, z: -6.8 },
+          castShadow: false
+        }),
+        makeRigSlot(2),
+        makeRigSlot(3),
+        makeRigSlot(4)
+      ]
+    }
+  },
+  {
+    id: "full_moon_night",
+    label: "Full Moon Night",
+    description: "Cool moonlit tones with soft blue rim accents.",
+    settings: {
+      enabled: true,
+      presetId: "full_moon_night",
+      followSelected: true,
+      lights: [
+        makeRigSlot(0, {
+          enabled: true,
+          type: "directional",
+          color: "#b5c8ff",
+          intensity: 1.14,
+          position: { x: 6.1, y: 8.7, z: 5.2 },
+          castShadow: true
+        }),
+        makeRigSlot(1, {
+          enabled: true,
+          type: "directional",
+          color: "#5d78c5",
+          intensity: 0.36,
+          position: { x: -6.3, y: 5.1, z: -5.8 },
+          castShadow: false
+        }),
+        makeRigSlot(2, {
+          enabled: true,
+          type: "directional",
+          color: "#90a6ff",
+          intensity: 0.52,
+          position: { x: -2.4, y: 9.0, z: -8.1 },
+          castShadow: false
+        }),
+        makeRigSlot(3),
+        makeRigSlot(4)
+      ]
+    }
+  },
+  {
+    id: "warm_rim_drama",
+    label: "Warm Rim Drama",
+    description: "Warm cinematic rim with cooler fill.",
+    settings: {
+      enabled: true,
+      presetId: "warm_rim_drama",
+      followSelected: true,
+      lights: [
+        makeRigSlot(0, {
+          enabled: true,
+          type: "directional",
+          color: "#fff4dd",
+          intensity: 1.34,
+          position: { x: 5.8, y: 8.5, z: 4.6 },
+          castShadow: true
+        }),
+        makeRigSlot(1, {
+          enabled: true,
+          type: "directional",
+          color: "#ffb36b",
+          intensity: 0.74,
+          position: { x: -7.4, y: 7.8, z: -7.7 },
+          castShadow: false
+        }),
+        makeRigSlot(2, {
+          enabled: true,
+          type: "directional",
+          color: "#7ea0d0",
+          intensity: 0.24,
+          position: { x: -5.1, y: 3.9, z: 6.4 },
+          castShadow: false
+        }),
+        makeRigSlot(3),
+        makeRigSlot(4)
+      ]
+    }
+  },
+  {
+    id: "fairy_camp",
+    label: "Fairy Camp",
+    description: "Stylized cool-warm blend with a soft fantasy tint.",
+    settings: {
+      enabled: true,
+      presetId: "fairy_camp",
+      followSelected: true,
+      lights: [
+        makeRigSlot(0, {
+          enabled: true,
+          type: "directional",
+          color: "#f7f3ff",
+          intensity: 1.04,
+          position: { x: 6.2, y: 8.6, z: 5.8 },
+          castShadow: true
+        }),
+        makeRigSlot(1, {
+          enabled: true,
+          type: "directional",
+          color: "#9bd2ff",
+          intensity: 0.56,
+          position: { x: -6.1, y: 6.3, z: 3.6 },
+          castShadow: false
+        }),
+        makeRigSlot(2, {
+          enabled: true,
+          type: "directional",
+          color: "#f3b5ff",
+          intensity: 0.58,
+          position: { x: -4.5, y: 7.2, z: -7.8 },
+          castShadow: false
+        }),
+        makeRigSlot(3),
+        makeRigSlot(4)
+      ]
+    }
+  }
+];
+
+const LIGHTING_PRESET_OPTIONS: LightingPresetOption[] = BUILT_IN_LIGHTING_PRESETS.map((preset) => ({
+  id: preset.id,
+  label: preset.label,
+  description: preset.description,
+  lightCount: countPresetLights(preset.settings.lights)
+}));
 
 function pickHdriLoader(fileName: string): RGBELoader | EXRLoader {
   const lower = fileName.trim().toLowerCase();
@@ -417,6 +788,10 @@ export function createStudioStage(
   let gridSettings: GridFloorSettings = { ...DEFAULT_GRID_SETTINGS };
   let fogColorAuto = true;
   let hdriSettings: HdriSettings = { ...DEFAULT_HDRI_SETTINGS };
+  let lightingRigSettings: LightingRigSettings = cloneLightingRigSettings(
+    DEFAULT_LIGHTING_RIG_SETTINGS
+  );
+  let lightingFocusTarget: THREE.Vector3 | null = null;
   let hdriBackgroundTexture: THREE.DataTexture | null = null;
   let hdriEnvironmentTexture: THREE.Texture | null = null;
   let hdriObjectUrl: string | null = null;
@@ -426,6 +801,12 @@ export function createStudioStage(
     density: DEFAULT_FOG_DENSITY,
     falloff: DEFAULT_FOG_FALLOFF
   };
+  const lightRigRuntimes: RigLightSlotRuntime[] = [];
+  for (let i = 0; i < LIGHT_RIG_SLOT_COUNT; i += 1) {
+    lightRigRuntimes.push({ light: null, targetObject: null });
+  }
+  const rigAnchor = new THREE.Vector3();
+  const rigOffset = new THREE.Vector3();
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   pmremGenerator.compileEquirectangularShader();
 
@@ -457,34 +838,6 @@ export function createStudioStage(
   scene.backgroundBlurriness = 0;
   scene.environmentRotation.set(0, 0, 0);
   scene.backgroundRotation.set(0, 0, 0);
-
-  const hemi = new THREE.HemisphereLight(0xf4f8ff, 0x838d98, 1.08);
-  scene.add(hemi);
-
-  const keyLight = new THREE.DirectionalLight(0xffffff, 1.3);
-  keyLight.position.set(6.8, 9.8, 6.2);
-  keyLight.castShadow = true;
-  keyLight.shadow.mapSize.set(2048, 2048);
-  keyLight.shadow.camera.near = 0.5;
-  keyLight.shadow.camera.far = 36;
-  keyLight.shadow.camera.left = -12;
-  keyLight.shadow.camera.right = 12;
-  keyLight.shadow.camera.top = 12;
-  keyLight.shadow.camera.bottom = -12;
-  keyLight.shadow.bias = -0.0002;
-  scene.add(keyLight);
-
-  const fillLight = new THREE.DirectionalLight(0xd6e5f4, 0.44);
-  fillLight.position.set(-6.0, 4.2, -4.8);
-  scene.add(fillLight);
-
-  const rimLight = new THREE.DirectionalLight(0xf0f5ff, 0.36);
-  rimLight.position.set(-7.2, 7.6, -6.0);
-  scene.add(rimLight);
-
-  const topLight = new THREE.DirectionalLight(0xffffff, 0.2);
-  topLight.position.set(0, 11.0, 2.2);
-  scene.add(topLight);
 
   const floorMaterial = new THREE.MeshStandardMaterial({
     color: 0xffffff,
@@ -536,6 +889,332 @@ export function createStudioStage(
 
   const originDotColor = new THREE.Color();
   const originDotHighlight = new THREE.Color(0xffffff);
+
+  function normalizeRigSlotIndex(value: number): RigLightSlotIndex | null {
+    if (!Number.isInteger(value) || value < 0 || value >= LIGHT_RIG_SLOT_COUNT) {
+      return null;
+    }
+    return value as RigLightSlotIndex;
+  }
+
+  function sanitizeRigLightSlot(
+    current: RigLightSlotSettings,
+    patch: Partial<RigLightSlotSettings>
+  ): RigLightSlotSettings {
+    const nextType = patch.type ? sanitizeRigLightType(patch.type) : current.type;
+    const nextEnabled = typeof patch.enabled === "boolean" ? patch.enabled : current.enabled;
+    const nextCastShadow = canTypeCastShadow(nextType)
+      ? typeof patch.castShadow === "boolean"
+        ? patch.castShadow
+        : current.castShadow
+      : false;
+    return {
+      slotIndex: current.slotIndex,
+      enabled: nextEnabled,
+      type: nextType,
+      color: sanitizeHexColor(patch.color, current.color),
+      intensity: clamp(patch.intensity ?? current.intensity, 0, LIGHT_INTENSITY_MAX),
+      position: {
+        x: clamp(
+          patch.position?.x ?? current.position.x,
+          LIGHT_POSITION_MIN,
+          LIGHT_POSITION_MAX
+        ),
+        y: clamp(
+          patch.position?.y ?? current.position.y,
+          LIGHT_POSITION_MIN,
+          LIGHT_POSITION_MAX
+        ),
+        z: clamp(
+          patch.position?.z ?? current.position.z,
+          LIGHT_POSITION_MIN,
+          LIGHT_POSITION_MAX
+        )
+      },
+      castShadow: nextCastShadow
+    };
+  }
+
+  function enforceRigShadowCap(next: LightingRigSettings): void {
+    let activeShadowLights = 0;
+    for (const slot of next.lights) {
+      if (!slot.enabled || !canTypeCastShadow(slot.type) || !slot.castShadow) {
+        continue;
+      }
+      if (activeShadowLights < MAX_SHADOW_LIGHTS) {
+        activeShadowLights += 1;
+      } else {
+        slot.castShadow = false;
+      }
+    }
+  }
+
+  function setShadowMapDefaults(light: RigLightObject): void {
+    if ((light as THREE.DirectionalLight).isDirectionalLight) {
+      const directional = light as THREE.DirectionalLight;
+      directional.shadow.mapSize.set(1536, 1536);
+      directional.shadow.camera.near = 0.5;
+      directional.shadow.camera.far = 40;
+      directional.shadow.camera.left = -12;
+      directional.shadow.camera.right = 12;
+      directional.shadow.camera.top = 12;
+      directional.shadow.camera.bottom = -12;
+      directional.shadow.bias = -0.0002;
+      return;
+    }
+
+    if ((light as THREE.SpotLight).isSpotLight) {
+      const spot = light as THREE.SpotLight;
+      spot.shadow.mapSize.set(1536, 1536);
+      spot.shadow.camera.near = 0.5;
+      spot.shadow.camera.far = 48;
+      spot.shadow.bias = -0.0002;
+      return;
+    }
+
+    if ((light as THREE.PointLight).isPointLight) {
+      const point = light as THREE.PointLight;
+      point.shadow.mapSize.set(1024, 1024);
+      point.shadow.camera.near = 0.5;
+      point.shadow.camera.far = 45;
+      point.shadow.bias = -0.00025;
+    }
+  }
+
+  function lightMatchesType(light: RigLightObject, type: RigLightType): boolean {
+    if (type === "directional") {
+      return (light as THREE.DirectionalLight).isDirectionalLight === true;
+    }
+    if (type === "point") {
+      return (light as THREE.PointLight).isPointLight === true;
+    }
+    if (type === "spot") {
+      return (light as THREE.SpotLight).isSpotLight === true;
+    }
+    if (type === "hemisphere") {
+      return (light as THREE.HemisphereLight).isHemisphereLight === true;
+    }
+    return false;
+  }
+
+  function destroyRigLightSlotRuntime(slotIndex: RigLightSlotIndex): void {
+    const runtime = lightRigRuntimes[slotIndex];
+    if (runtime.light) {
+      const shadowCarrier = runtime.light as RigLightObject & { shadow?: THREE.LightShadow };
+      if (shadowCarrier.shadow?.map) {
+        shadowCarrier.shadow.map.dispose();
+      }
+      scene.remove(runtime.light);
+      runtime.light = null;
+    }
+    if (runtime.targetObject) {
+      scene.remove(runtime.targetObject);
+      runtime.targetObject = null;
+    }
+  }
+
+  function createRigLightForType(
+    slotIndex: RigLightSlotIndex,
+    type: RigLightType
+  ): RigLightSlotRuntime {
+    const runtime: RigLightSlotRuntime = { light: null, targetObject: null };
+    if (type === "none") {
+      return runtime;
+    }
+
+    if (type === "directional") {
+      const light = new THREE.DirectionalLight(0xffffff, 0);
+      const targetObject = new THREE.Object3D();
+      targetObject.name = `rig-light-${slotIndex + 1}-target`;
+      scene.add(targetObject);
+      light.target = targetObject;
+      setShadowMapDefaults(light);
+      scene.add(light);
+      runtime.light = light;
+      runtime.targetObject = targetObject;
+      return runtime;
+    }
+
+    if (type === "point") {
+      const light = new THREE.PointLight(0xffffff, 0, 0, 2);
+      setShadowMapDefaults(light);
+      scene.add(light);
+      runtime.light = light;
+      return runtime;
+    }
+
+    if (type === "spot") {
+      const light = new THREE.SpotLight(0xffffff, 0, 0, THREE.MathUtils.degToRad(42), 0.34, 2);
+      const targetObject = new THREE.Object3D();
+      targetObject.name = `rig-light-${slotIndex + 1}-target`;
+      scene.add(targetObject);
+      light.target = targetObject;
+      setShadowMapDefaults(light);
+      scene.add(light);
+      runtime.light = light;
+      runtime.targetObject = targetObject;
+      return runtime;
+    }
+
+    const light = new THREE.HemisphereLight(0xffffff, 0x090c11, 0);
+    scene.add(light);
+    runtime.light = light;
+    return runtime;
+  }
+
+  function getRigAnchor(out: THREE.Vector3): void {
+    if (lightingRigSettings.followSelected && lightingFocusTarget) {
+      out.copy(lightingFocusTarget);
+      return;
+    }
+    out.copy(DEFAULT_LIGHT_RIG_ANCHOR);
+  }
+
+  function syncRigLightSlot(slotIndex: RigLightSlotIndex): void {
+    const slot = lightingRigSettings.lights[slotIndex];
+    const runtime = lightRigRuntimes[slotIndex];
+    const desiredType: RigLightType = slot.enabled ? slot.type : "none";
+
+    if (desiredType === "none") {
+      destroyRigLightSlotRuntime(slotIndex);
+      return;
+    }
+
+    if (runtime.light && !lightMatchesType(runtime.light, desiredType)) {
+      destroyRigLightSlotRuntime(slotIndex);
+    }
+
+    if (!lightRigRuntimes[slotIndex].light) {
+      lightRigRuntimes[slotIndex] = createRigLightForType(slotIndex, desiredType);
+    }
+
+    const activeRuntime = lightRigRuntimes[slotIndex];
+    const light = activeRuntime.light;
+    if (!light) {
+      return;
+    }
+
+    getRigAnchor(rigAnchor);
+    rigOffset.set(slot.position.x, slot.position.y, slot.position.z);
+    light.position.copy(rigAnchor).add(rigOffset);
+    light.color.set(sanitizeHexColor(slot.color, "#ffffff"));
+    light.intensity =
+      lightingRigSettings.enabled && slot.enabled
+        ? clamp(slot.intensity, 0, LIGHT_INTENSITY_MAX)
+        : 0;
+
+    if ((light as THREE.HemisphereLight).isHemisphereLight) {
+      const hemi = light as THREE.HemisphereLight;
+      hemi.groundColor.copy(light.color).multiplyScalar(0.2);
+    }
+
+    if ((light as THREE.SpotLight).isSpotLight) {
+      const spot = light as THREE.SpotLight;
+      spot.angle = THREE.MathUtils.degToRad(42);
+      spot.penumbra = 0.34;
+      spot.distance = 0;
+      spot.decay = 2;
+    } else if ((light as THREE.PointLight).isPointLight) {
+      const point = light as THREE.PointLight;
+      point.distance = 0;
+      point.decay = 2;
+    }
+
+    const castShadow =
+      lightingRigSettings.enabled &&
+      slot.enabled &&
+      slot.castShadow &&
+      canTypeCastShadow(slot.type);
+    if ("castShadow" in light) {
+      (light as THREE.DirectionalLight | THREE.PointLight | THREE.SpotLight).castShadow =
+        castShadow;
+    }
+
+    if (activeRuntime.targetObject) {
+      activeRuntime.targetObject.position.copy(rigAnchor);
+      activeRuntime.targetObject.updateMatrixWorld();
+      if ((light as THREE.DirectionalLight).isDirectionalLight) {
+        (light as THREE.DirectionalLight).target = activeRuntime.targetObject;
+      } else if ((light as THREE.SpotLight).isSpotLight) {
+        (light as THREE.SpotLight).target = activeRuntime.targetObject;
+      }
+    }
+
+    light.updateMatrixWorld();
+  }
+
+  function syncLightingRigRuntime(): void {
+    for (let i = 0; i < LIGHT_RIG_SLOT_COUNT; i += 1) {
+      syncRigLightSlot(i as RigLightSlotIndex);
+    }
+  }
+
+  function getLightingPresetById(presetId: string): LightingPresetDefinition {
+    const found = BUILT_IN_LIGHTING_PRESETS.find((preset) => preset.id === presetId);
+    if (found) {
+      return found;
+    }
+    return BUILT_IN_LIGHTING_PRESETS[0];
+  }
+
+  function applyLightingPreset(presetId: string): void {
+    const preset = getLightingPresetById(presetId);
+    lightingRigSettings = cloneLightingRigSettings(preset.settings);
+    lightingRigSettings.presetId = preset.id;
+    enforceRigShadowCap(lightingRigSettings);
+    syncLightingRigRuntime();
+  }
+
+  function setLightingRigSettings(
+    next: Partial<Omit<LightingRigSettings, "lights">> & {
+      lights?: Partial<RigLightSlotSettings>[];
+    }
+  ): void {
+    if (typeof next.enabled === "boolean") {
+      lightingRigSettings.enabled = next.enabled;
+    }
+    if (typeof next.presetId === "string" && next.presetId.trim().length > 0) {
+      lightingRigSettings.presetId = next.presetId.trim();
+    }
+    if (typeof next.followSelected === "boolean") {
+      lightingRigSettings.followSelected = next.followSelected;
+    }
+
+    if (Array.isArray(next.lights)) {
+      for (let i = 0; i < next.lights.length; i += 1) {
+        const patch = next.lights[i];
+        if (!patch) {
+          continue;
+        }
+        const slotIndex = normalizeRigSlotIndex(
+          typeof patch.slotIndex === "number" ? patch.slotIndex : i
+        );
+        if (slotIndex === null) {
+          continue;
+        }
+        const current = lightingRigSettings.lights[slotIndex];
+        lightingRigSettings.lights[slotIndex] = sanitizeRigLightSlot(current, patch);
+      }
+    }
+
+    enforceRigShadowCap(lightingRigSettings);
+    syncLightingRigRuntime();
+  }
+
+  function setLightingFocusTarget(target: THREE.Vector3 | null): void {
+    if (!target) {
+      lightingFocusTarget = null;
+      syncLightingRigRuntime();
+      return;
+    }
+
+    if (!lightingFocusTarget) {
+      lightingFocusTarget = target.clone();
+    } else {
+      lightingFocusTarget.copy(target);
+    }
+    syncLightingRigRuntime();
+  }
 
   function applyGridRepeat(): void {
     const repeat = FLOOR_SIZE / Math.max(gridSettings.cellSize * 4, 0.1);
@@ -627,73 +1306,12 @@ export function createStudioStage(
     drawDottedGridTexture(gridTexture, gridSettings);
     updateOriginDotAppearance();
 
-    if (environmentPreset === "studio_clay") {
-      hemi.color.setHex(0xa8b4c2);
-      hemi.groundColor.setHex(0x06090e);
-      hemi.intensity = 0.1;
-
-      keyLight.color.setHex(0xf8fbff);
-      keyLight.intensity = 1.52;
-      keyLight.position.set(7.8, 8.8, 6.4);
-
-      fillLight.color.setHex(0xcdd9e8);
-      fillLight.intensity = 0.24;
-      fillLight.position.set(-8.6, 4.6, 3.4);
-
-      rimLight.color.setHex(0xf2f7ff);
-      rimLight.intensity = 0.76;
-      rimLight.position.set(-4.5, 8.4, -8.2);
-
-      topLight.color.setHex(0xffffff);
-      topLight.intensity = 0.52;
-      topLight.position.set(0.8, 10.8, 2.8);
-    } else if (darkMode) {
-      hemi.color.setHex(0x8290a2);
-      hemi.groundColor.setHex(0x060b11);
-      hemi.intensity = 0.18;
-
-      keyLight.color.setHex(0xffffff);
-      keyLight.intensity = 1.18;
-      keyLight.position.set(6.8, 9.8, 6.2);
-
-      fillLight.color.setHex(0xb4c0ce);
-      fillLight.intensity = 0.14;
-      fillLight.position.set(-6.0, 4.2, -4.8);
-
-      rimLight.color.setHex(0xdce7f6);
-      rimLight.intensity = 0.4;
-      rimLight.position.set(-7.2, 7.6, -6.0);
-
-      topLight.color.setHex(0xffffff);
-      topLight.intensity = 0.2;
-      topLight.position.set(0, 11.0, 2.2);
-    } else {
-      hemi.color.setHex(0xf4f8ff);
-      hemi.groundColor.setHex(0x838d98);
-      hemi.intensity = 1.08;
-
-      keyLight.color.setHex(0xffffff);
-      keyLight.intensity = 1.3;
-      keyLight.position.set(6.8, 9.8, 6.2);
-
-      fillLight.color.setHex(0xd6e5f4);
-      fillLight.intensity = 0.44;
-      fillLight.position.set(-6.0, 4.2, -4.8);
-
-      rimLight.color.setHex(0xf0f5ff);
-      rimLight.intensity = 0.36;
-      rimLight.position.set(-7.2, 7.6, -6.0);
-
-      topLight.color.setHex(0xffffff);
-      topLight.intensity = 0.2;
-      topLight.position.set(0, 11.0, 2.2);
-    }
-
     floorMaterial.roughness = gridSettings.roughness;
     floorMaterial.needsUpdate = true;
 
     applyFogSettings();
     applyHdriToScene();
+    syncLightingRigRuntime();
   }
 
   function setFogDensity(density: number): void {
@@ -911,6 +1529,7 @@ export function createStudioStage(
     applyGridRepeat();
   }
 
+  enforceRigShadowCap(lightingRigSettings);
   applyGridRepeat();
   updateThemeVisuals();
 
@@ -947,6 +1566,20 @@ export function createStudioStage(
 
     setGridSettings,
 
+    getLightingRigSettings() {
+      return cloneLightingRigSettings(lightingRigSettings);
+    },
+
+    setLightingRigSettings,
+
+    getLightingPresetOptions() {
+      return [...LIGHTING_PRESET_OPTIONS];
+    },
+
+    applyLightingPreset,
+
+    setLightingFocusTarget,
+
     isDarkMode() {
       return darkMode;
     },
@@ -954,11 +1587,9 @@ export function createStudioStage(
     setDarkMode,
 
     dispose() {
-      scene.remove(hemi);
-      scene.remove(keyLight);
-      scene.remove(fillLight);
-      scene.remove(rimLight);
-      scene.remove(topLight);
+      for (let i = 0; i < LIGHT_RIG_SLOT_COUNT; i += 1) {
+        destroyRigLightSlotRuntime(i as RigLightSlotIndex);
+      }
       scene.remove(floor);
       scene.remove(originDot);
 

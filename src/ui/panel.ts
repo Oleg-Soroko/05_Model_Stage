@@ -1,4 +1,10 @@
 import type { SlotState, VisibleCount } from "../types/assets";
+import type {
+  LightingPresetOption,
+  LightingRigSettings,
+  RigLightSlotIndex,
+  RigLightType
+} from "../scene/stage";
 
 export type StatusLevel = "info" | "warning" | "error";
 
@@ -13,7 +19,7 @@ export interface ModelInfoRow {
 }
 
 type TransformAxis = "x" | "y" | "z";
-type TabId = "models" | "environment" | "ui_config";
+type TabId = "models" | "environment" | "light" | "ui_config";
 
 interface ShowcasePanelCallbacks {
   onVisibleCountChange: (count: VisibleCount) => void;
@@ -39,6 +45,19 @@ interface ShowcasePanelCallbacks {
   onHdriIntensityChange: (intensity: number) => void;
   onHdriBackgroundIntensityChange: (intensity: number) => void;
   onHdriBackgroundBlurChange: (blur: number) => void;
+  onLightingRigEnabledChange: (enabled: boolean) => void;
+  onLightingPresetApply: (presetId: string) => void;
+  onLightingSlotSelect: (slotIndex: RigLightSlotIndex) => void;
+  onLightingSlotEnabledChange: (slotIndex: RigLightSlotIndex, enabled: boolean) => void;
+  onLightingSlotTypeChange: (slotIndex: RigLightSlotIndex, type: RigLightType) => void;
+  onLightingSlotColorChange: (slotIndex: RigLightSlotIndex, color: string) => void;
+  onLightingSlotIntensityChange: (slotIndex: RigLightSlotIndex, intensity: number) => void;
+  onLightingSlotPositionChange: (
+    slotIndex: RigLightSlotIndex,
+    axis: "x" | "y" | "z",
+    value: number
+  ) => void;
+  onLightingSlotShadowChange: (slotIndex: RigLightSlotIndex, castShadow: boolean) => void;
   onFogEnabledChange: (enabled: boolean) => void;
   onFogColorChange: (color: string) => void;
   onFogDensityChange: (density: number) => void;
@@ -92,6 +111,9 @@ export interface ShowcasePanel {
     backgroundIntensity: number;
     backgroundBlur: number;
   }) => void;
+  setLightingRigSettings: (values: LightingRigSettings) => void;
+  setLightingPresetOptions: (values: LightingPresetOption[]) => void;
+  setLightingShadowUsage: (values: { activeShadowLights: number; maxShadowLights: number }) => void;
   setFogDensity: (density: number) => void;
   setFogSettings: (values: {
     enabled: boolean;
@@ -159,6 +181,91 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function formatRigLightTypeShort(type: RigLightType): string {
+  switch (type) {
+    case "directional":
+      return "Dir";
+    case "point":
+      return "Point";
+    case "spot":
+      return "Spot";
+    case "hemisphere":
+      return "Hemi";
+    default:
+      return "None";
+  }
+}
+
+function formatRigLightTypeOption(type: RigLightType): string {
+  switch (type) {
+    case "directional":
+      return "Direction";
+    case "point":
+      return "Point";
+    case "spot":
+      return "Spot";
+    case "hemisphere":
+      return "Hemi";
+    default:
+      return "None";
+  }
+}
+
+function makeDefaultLightingRigSettings(): LightingRigSettings {
+  return {
+    enabled: true,
+    presetId: "default_neutral",
+    followSelected: true,
+    lights: [
+      {
+        slotIndex: 0,
+        enabled: false,
+        type: "none",
+        color: "#ffffff",
+        intensity: 1,
+        position: { x: 0, y: 5, z: 0 },
+        castShadow: false
+      },
+      {
+        slotIndex: 1,
+        enabled: false,
+        type: "none",
+        color: "#ffffff",
+        intensity: 1,
+        position: { x: 0, y: 5, z: 0 },
+        castShadow: false
+      },
+      {
+        slotIndex: 2,
+        enabled: false,
+        type: "none",
+        color: "#ffffff",
+        intensity: 1,
+        position: { x: 0, y: 5, z: 0 },
+        castShadow: false
+      },
+      {
+        slotIndex: 3,
+        enabled: false,
+        type: "none",
+        color: "#ffffff",
+        intensity: 1,
+        position: { x: 0, y: 5, z: 0 },
+        castShadow: false
+      },
+      {
+        slotIndex: 4,
+        enabled: false,
+        type: "none",
+        color: "#ffffff",
+        intensity: 1,
+        position: { x: 0, y: 5, z: 0 },
+        castShadow: false
+      }
+    ]
+  };
+}
+
 export function createShowcasePanel(
   container: HTMLElement,
   callbacks: ShowcasePanelCallbacks
@@ -172,7 +279,7 @@ export function createShowcasePanel(
 
   const header = document.createElement("h1");
   header.className = "panel-title";
-  header.textContent = "MODEL STAGE";
+  header.textContent = "MESH STAGE";
   panel.appendChild(header);
 
   const subtitle = document.createElement("p");
@@ -199,10 +306,12 @@ export function createShowcasePanel(
   }
 
   const modelsTabButton = makeTabButton("MODELS", "models");
-  const environmentTabButton = makeTabButton("ENVIRONMENT", "environment");
+  const environmentTabButton = makeTabButton("STAGE", "environment");
+  const lightTabButton = makeTabButton("LIGHT", "light");
   const uiConfigTabButton = makeTabButton("UI CONFIG", "ui_config");
   tabsRow.appendChild(modelsTabButton);
   tabsRow.appendChild(environmentTabButton);
+  tabsRow.appendChild(lightTabButton);
   tabsRow.appendChild(uiConfigTabButton);
 
   const tabsContent = document.createElement("div");
@@ -217,6 +326,10 @@ export function createShowcasePanel(
   environmentTabPanel.className = "tab-panel";
   tabsContent.appendChild(environmentTabPanel);
 
+  const lightTabPanel = document.createElement("div");
+  lightTabPanel.className = "tab-panel";
+  tabsContent.appendChild(lightTabPanel);
+
   const uiConfigTabPanel = document.createElement("div");
   uiConfigTabPanel.className = "tab-panel";
   tabsContent.appendChild(uiConfigTabPanel);
@@ -224,17 +337,19 @@ export function createShowcasePanel(
   const tabButtons: Record<TabId, HTMLButtonElement> = {
     models: modelsTabButton,
     environment: environmentTabButton,
+    light: lightTabButton,
     ui_config: uiConfigTabButton
   };
 
   const tabPanels: Record<TabId, HTMLDivElement> = {
     models: modelsTabPanel,
     environment: environmentTabPanel,
+    light: lightTabPanel,
     ui_config: uiConfigTabPanel
   };
 
   function setActiveTab(tabId: TabId): void {
-    const ids: TabId[] = ["models", "environment", "ui_config"];
+    const ids: TabId[] = ["models", "environment", "light", "ui_config"];
     for (const id of ids) {
       tabButtons[id].classList.toggle("active", id === tabId);
       tabPanels[id].classList.toggle("active", id === tabId);
@@ -246,6 +361,9 @@ export function createShowcasePanel(
   });
   environmentTabButton.addEventListener("click", () => {
     setActiveTab("environment");
+  });
+  lightTabButton.addEventListener("click", () => {
+    setActiveTab("light");
   });
   uiConfigTabButton.addEventListener("click", () => {
     setActiveTab("ui_config");
@@ -289,11 +407,16 @@ export function createShowcasePanel(
   ): { row: HTMLLabelElement; input: HTMLInputElement } {
     const row = document.createElement("label");
     row.className = "control-row color-row";
-    row.textContent = label;
+
+    const labelText = document.createElement("span");
+    labelText.className = "color-row-label";
+    labelText.textContent = label;
+    row.appendChild(labelText);
 
     const input = document.createElement("input");
     input.type = "color";
     input.value = "#ffffff";
+    input.title = label;
     input.addEventListener("input", () => {
       onInput(input.value);
     });
@@ -376,15 +499,33 @@ export function createShowcasePanel(
     secondaryColor: "#c4d5e7",
     mutedColor: "#9db2c9"
   };
+  let lightingRigState: LightingRigSettings = makeDefaultLightingRigSettings();
+  let selectedLightingSlotIndex: RigLightSlotIndex = 0;
 
   function applyUiGlassConfig(): void {
-    panel.style.setProperty("--ui-glass-blur", `${uiGlassConfig.blurPx.toFixed(1)}px`);
-    panel.style.setProperty("--ui-glass-opacity", uiGlassConfig.opacity.toFixed(2));
-    panel.style.setProperty("--ui-glass-border", uiGlassConfig.borderStrength.toFixed(2));
-    panel.style.setProperty("--ui-glass-shadow", uiGlassConfig.shadowStrength.toFixed(2));
-    panel.style.setProperty("--ui-glass-sheen", uiGlassConfig.sheenStrength.toFixed(2));
-    panel.style.setProperty("--ui-glass-noise", uiGlassConfig.noiseStrength.toFixed(2));
-    panel.style.setProperty("--ui-glass-radius", `${uiGlassConfig.radiusPx.toFixed(1)}px`);
+    const blur = `${uiGlassConfig.blurPx.toFixed(1)}px`;
+    const opacity = uiGlassConfig.opacity.toFixed(2);
+    const border = uiGlassConfig.borderStrength.toFixed(2);
+    const shadow = uiGlassConfig.shadowStrength.toFixed(2);
+    const sheen = uiGlassConfig.sheenStrength.toFixed(2);
+    const noise = uiGlassConfig.noiseStrength.toFixed(2);
+    const radius = `${uiGlassConfig.radiusPx.toFixed(1)}px`;
+
+    panel.style.setProperty("--ui-glass-blur", blur);
+    panel.style.setProperty("--ui-glass-opacity", opacity);
+    panel.style.setProperty("--ui-glass-border", border);
+    panel.style.setProperty("--ui-glass-shadow", shadow);
+    panel.style.setProperty("--ui-glass-sheen", sheen);
+    panel.style.setProperty("--ui-glass-noise", noise);
+    panel.style.setProperty("--ui-glass-radius", radius);
+
+    container.style.setProperty("--ui-glass-blur", blur);
+    container.style.setProperty("--ui-glass-opacity", opacity);
+    container.style.setProperty("--ui-glass-border", border);
+    container.style.setProperty("--ui-glass-shadow", shadow);
+    container.style.setProperty("--ui-glass-sheen", sheen);
+    container.style.setProperty("--ui-glass-noise", noise);
+    container.style.setProperty("--ui-glass-radius", radius);
   }
 
   function applyUiTextConfig(): void {
@@ -553,7 +694,7 @@ export function createShowcasePanel(
 
   const environmentPresetRow = document.createElement("label");
   environmentPresetRow.className = "control-row";
-  environmentPresetRow.textContent = "Environment Preset";
+  environmentPresetRow.textContent = "Stage Preset";
   const environmentPresetSelect = document.createElement("select");
   environmentPresetSelect.innerHTML =
     '<option value="showcase_grid">Light</option><option value="studio_clay">Dark</option>';
@@ -593,7 +734,7 @@ export function createShowcasePanel(
 
   const hdriSection = document.createElement("div");
   hdriSection.className = "env-section";
-  environmentTabPanel.appendChild(hdriSection);
+  lightTabPanel.appendChild(hdriSection);
 
   const hdriSectionTitle = document.createElement("h3");
   hdriSectionTitle.className = "section-title";
@@ -657,6 +798,126 @@ export function createShowcasePanel(
     }
   );
   hdriSection.appendChild(hdriBackgroundBlurSlider.row);
+
+  const lightRigSection = document.createElement("div");
+  lightRigSection.className = "env-section";
+  lightTabPanel.appendChild(lightRigSection);
+
+  const lightRigTitle = document.createElement("h3");
+  lightRigTitle.className = "section-title";
+  lightRigTitle.textContent = "Light Rig";
+  lightRigSection.appendChild(lightRigTitle);
+
+  const lightRigEnabledToggle = makeToggleRow("Enable Light Rig", (enabled) => {
+    callbacks.onLightingRigEnabledChange(enabled);
+  });
+  lightRigSection.appendChild(lightRigEnabledToggle.row);
+
+  const lightingPresetRow = document.createElement("label");
+  lightingPresetRow.className = "control-row";
+  lightingPresetRow.textContent = "Lighting Preset";
+  const lightingPresetSelect = document.createElement("select");
+  lightingPresetRow.appendChild(lightingPresetSelect);
+  lightRigSection.appendChild(lightingPresetRow);
+
+  const applyLightingPresetButton = document.createElement("button");
+  applyLightingPresetButton.type = "button";
+  applyLightingPresetButton.className = "preset-button";
+  applyLightingPresetButton.textContent = "Apply Preset";
+  lightRigSection.appendChild(applyLightingPresetButton);
+
+  const lightSlotRow = document.createElement("div");
+  lightSlotRow.className = "slot-row";
+  lightRigSection.appendChild(lightSlotRow);
+
+  const lightSlotButtons: HTMLButtonElement[] = [];
+  for (let i = 0; i < 5; i += 1) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "slot-button";
+    button.textContent = `L${i + 1}`;
+    const slotIndex = i as RigLightSlotIndex;
+    button.addEventListener("click", () => {
+      selectedLightingSlotIndex = slotIndex;
+      callbacks.onLightingSlotSelect(slotIndex);
+      syncLightSlotButtons();
+      syncSelectedLightSlotControls();
+    });
+    lightSlotButtons.push(button);
+    lightSlotRow.appendChild(button);
+  }
+
+  const lightSlotEnabledToggle = makeToggleRow("Slot Enabled", (enabled) => {
+    callbacks.onLightingSlotEnabledChange(selectedLightingSlotIndex, enabled);
+  });
+  lightRigSection.appendChild(lightSlotEnabledToggle.row);
+
+  const lightSlotTypeRow = document.createElement("label");
+  lightSlotTypeRow.className = "control-row";
+  lightSlotTypeRow.textContent = "Light Type";
+  const lightSlotTypeSelect = document.createElement("select");
+  lightSlotTypeSelect.innerHTML = `
+    <option value="none">${formatRigLightTypeOption("none")}</option>
+    <option value="directional">${formatRigLightTypeOption("directional")}</option>
+    <option value="point">${formatRigLightTypeOption("point")}</option>
+    <option value="spot">${formatRigLightTypeOption("spot")}</option>
+    <option value="hemisphere">${formatRigLightTypeOption("hemisphere")}</option>
+  `;
+  lightSlotTypeRow.appendChild(lightSlotTypeSelect);
+  lightRigSection.appendChild(lightSlotTypeRow);
+
+  const lightSlotColorRow = makeColorRow("Light Color", (value) => {
+    callbacks.onLightingSlotColorChange(selectedLightingSlotIndex, value);
+  });
+  lightRigSection.appendChild(lightSlotColorRow.row);
+
+  const lightSlotIntensitySlider = makeSliderRow("Light Intensity", 0, 8, 0.01, 2, (value) => {
+    callbacks.onLightingSlotIntensityChange(selectedLightingSlotIndex, value);
+  });
+  lightRigSection.appendChild(lightSlotIntensitySlider.row);
+
+  const lightSlotPositionRow = makeTransformVectorRow("Light Position", 0.1, (axis, value) => {
+    callbacks.onLightingSlotPositionChange(selectedLightingSlotIndex, axis, value);
+  });
+  lightRigSection.appendChild(lightSlotPositionRow.row);
+
+  const lightSlotShadowToggle = makeToggleRow("Cast Shadows", (enabled) => {
+    callbacks.onLightingSlotShadowChange(selectedLightingSlotIndex, enabled);
+  });
+  lightRigSection.appendChild(lightSlotShadowToggle.row);
+
+  const lightShadowUsageLabel = document.createElement("div");
+  lightShadowUsageLabel.className = "mini-status";
+  lightShadowUsageLabel.textContent = "Shadow lights active: 0 / 2";
+  lightRigSection.appendChild(lightShadowUsageLabel);
+
+  function getSelectedLightSlot() {
+    return lightingRigState.lights[selectedLightingSlotIndex];
+  }
+
+  function syncLightSlotButtons(): void {
+    for (let i = 0; i < lightSlotButtons.length; i += 1) {
+      const button = lightSlotButtons[i];
+      const slot = lightingRigState.lights[i as RigLightSlotIndex];
+      const enabled = slot.enabled && slot.type !== "none";
+      const typeLabel = enabled ? formatRigLightTypeShort(slot.type) : "None";
+      button.classList.toggle("active", selectedLightingSlotIndex === i);
+      button.textContent = `L${i + 1} ${typeLabel}`;
+    }
+  }
+
+  function syncSelectedLightSlotControls(): void {
+    const slot = getSelectedLightSlot();
+    lightSlotEnabledToggle.input.checked = slot.enabled;
+    lightSlotTypeSelect.value = slot.type;
+    lightSlotColorRow.input.value = slot.color;
+    lightSlotIntensitySlider.input.value = String(slot.intensity);
+    lightSlotIntensitySlider.valueLabel.textContent = formatSliderValue(slot.intensity, 2);
+    lightSlotPositionRow.inputs.x.value = slot.position.x.toFixed(2);
+    lightSlotPositionRow.inputs.y.value = slot.position.y.toFixed(2);
+    lightSlotPositionRow.inputs.z.value = slot.position.z.toFixed(2);
+    lightSlotShadowToggle.input.checked = slot.castShadow;
+  }
 
   const fogEnabledToggle = makeToggleRow("Enable Fog", (enabled) => {
     callbacks.onFogEnabledChange(enabled);
@@ -907,6 +1168,8 @@ export function createShowcasePanel(
   }
 
   setHdriControlsEnabled(false);
+  syncLightSlotButtons();
+  syncSelectedLightSlotControls();
 
   visibleSelect.addEventListener("change", () => {
     const value = Number(visibleSelect.value);
@@ -921,6 +1184,27 @@ export function createShowcasePanel(
       environmentPresetSelect.value === "studio_clay"
     ) {
       callbacks.onEnvironmentPresetChange(environmentPresetSelect.value);
+    }
+  });
+
+  applyLightingPresetButton.addEventListener("click", () => {
+    const presetId = lightingPresetSelect.value.trim();
+    if (!presetId) {
+      return;
+    }
+    callbacks.onLightingPresetApply(presetId);
+  });
+
+  lightSlotTypeSelect.addEventListener("change", () => {
+    const value = lightSlotTypeSelect.value;
+    if (
+      value === "none" ||
+      value === "directional" ||
+      value === "point" ||
+      value === "spot" ||
+      value === "hemisphere"
+    ) {
+      callbacks.onLightingSlotTypeChange(selectedLightingSlotIndex, value);
     }
   });
 
@@ -1114,6 +1398,110 @@ export function createShowcasePanel(
 
       hdriBackgroundBlurSlider.input.value = String(values.backgroundBlur);
       hdriBackgroundBlurSlider.valueLabel.textContent = formatSliderValue(values.backgroundBlur, 2);
+    },
+
+    setLightingRigSettings(values) {
+      lightingRigState = {
+        enabled: values.enabled,
+        presetId: values.presetId,
+        followSelected: values.followSelected,
+        lights: [
+          {
+            slotIndex: values.lights[0].slotIndex,
+            enabled: values.lights[0].enabled,
+            type: values.lights[0].type,
+            color: values.lights[0].color,
+            intensity: values.lights[0].intensity,
+            position: { ...values.lights[0].position },
+            castShadow: values.lights[0].castShadow
+          },
+          {
+            slotIndex: values.lights[1].slotIndex,
+            enabled: values.lights[1].enabled,
+            type: values.lights[1].type,
+            color: values.lights[1].color,
+            intensity: values.lights[1].intensity,
+            position: { ...values.lights[1].position },
+            castShadow: values.lights[1].castShadow
+          },
+          {
+            slotIndex: values.lights[2].slotIndex,
+            enabled: values.lights[2].enabled,
+            type: values.lights[2].type,
+            color: values.lights[2].color,
+            intensity: values.lights[2].intensity,
+            position: { ...values.lights[2].position },
+            castShadow: values.lights[2].castShadow
+          },
+          {
+            slotIndex: values.lights[3].slotIndex,
+            enabled: values.lights[3].enabled,
+            type: values.lights[3].type,
+            color: values.lights[3].color,
+            intensity: values.lights[3].intensity,
+            position: { ...values.lights[3].position },
+            castShadow: values.lights[3].castShadow
+          },
+          {
+            slotIndex: values.lights[4].slotIndex,
+            enabled: values.lights[4].enabled,
+            type: values.lights[4].type,
+            color: values.lights[4].color,
+            intensity: values.lights[4].intensity,
+            position: { ...values.lights[4].position },
+            castShadow: values.lights[4].castShadow
+          }
+        ]
+      };
+
+      lightRigEnabledToggle.input.checked = values.enabled;
+      if (lightingPresetSelect.options.length > 0) {
+        const selectedValue = Array.from(lightingPresetSelect.options).some(
+          (option) => option.value === values.presetId
+        )
+          ? values.presetId
+          : lightingPresetSelect.options[0].value;
+        lightingPresetSelect.value = selectedValue;
+      }
+
+      if (selectedLightingSlotIndex > 4) {
+        selectedLightingSlotIndex = 0;
+      }
+      syncLightSlotButtons();
+      syncSelectedLightSlotControls();
+    },
+
+    setLightingPresetOptions(values) {
+      lightingPresetSelect.innerHTML = "";
+      for (const optionData of values) {
+        const option = document.createElement("option");
+        option.value = optionData.id;
+        option.textContent = `${optionData.label} (${optionData.lightCount})`;
+        lightingPresetSelect.appendChild(option);
+      }
+      if (lightingPresetSelect.options.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No presets";
+        lightingPresetSelect.appendChild(option);
+        lightingPresetSelect.disabled = true;
+        applyLightingPresetButton.disabled = true;
+      } else {
+        lightingPresetSelect.disabled = false;
+        applyLightingPresetButton.disabled = false;
+      }
+      if (
+        lightingPresetSelect.options.length > 0 &&
+        Array.from(lightingPresetSelect.options).some(
+          (option) => option.value === lightingRigState.presetId
+        )
+      ) {
+        lightingPresetSelect.value = lightingRigState.presetId;
+      }
+    },
+
+    setLightingShadowUsage(values) {
+      lightShadowUsageLabel.textContent = `Shadow lights active: ${values.activeShadowLights} / ${values.maxShadowLights}`;
     },
 
     setFogDensity(density) {

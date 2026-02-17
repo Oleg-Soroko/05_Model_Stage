@@ -53,7 +53,7 @@ function materialToPbrSource(material: THREE.Material): THREE.Material {
   const sourceShininess =
     typeof candidate.shininess === "number" ? Number(candidate.shininess) : null;
   const roughnessFromShininess =
-    sourceShininess !== null ? clamp(Math.sqrt(2 / (sourceShininess + 2)), 0.06, 1) : 1;
+    sourceShininess !== null ? clamp(Math.sqrt(2 / (sourceShininess + 2)), 0.06, 0.82) : 0.72;
 
   const converted = new THREE.MeshStandardMaterial({
     name: material.name,
@@ -177,6 +177,12 @@ function normalizeMaterialForDisplay(material: THREE.Material): void {
     map?: THREE.Texture | null;
     emissiveMap?: THREE.Texture | null;
     color?: THREE.Color;
+    roughness?: number;
+    metalness?: number;
+    roughnessMap?: THREE.Texture | null;
+    envMapIntensity?: number;
+    isMeshStandardMaterial?: boolean;
+    isMeshPhysicalMaterial?: boolean;
   };
 
   if (candidate.map) {
@@ -191,6 +197,26 @@ function normalizeMaterialForDisplay(material: THREE.Material): void {
   if (candidate.map && candidate.color) {
     if (candidate.color.r < 0.02 && candidate.color.g < 0.02 && candidate.color.b < 0.02) {
       candidate.color.set(0xffffff);
+    }
+  }
+
+  if (candidate.isMeshStandardMaterial || candidate.isMeshPhysicalMaterial) {
+    if (typeof candidate.roughness !== "number" || Number.isNaN(candidate.roughness)) {
+      candidate.roughness = 0.72;
+    } else if (!candidate.roughnessMap && candidate.roughness >= 0.98) {
+      candidate.roughness = 0.78;
+    }
+
+    if (typeof candidate.metalness !== "number" || Number.isNaN(candidate.metalness)) {
+      candidate.metalness = 0;
+    }
+
+    if (
+      typeof candidate.envMapIntensity !== "number" ||
+      Number.isNaN(candidate.envMapIntensity) ||
+      candidate.envMapIntensity <= 0
+    ) {
+      candidate.envMapIntensity = 1.35;
     }
   }
 
@@ -707,6 +733,9 @@ export class CharacterSlot {
       }
 
       mesh.geometry = mesh.geometry.clone();
+      if (!mesh.geometry.hasAttribute("normal")) {
+        mesh.geometry.computeVertexNormals();
+      }
       mesh.material = cloneMaterials(mesh.material);
 
       if (Array.isArray(mesh.material)) {
@@ -905,8 +934,13 @@ export class CharacterSlot {
         applyMaterialNormalOptions(mesh.material, options);
       }
 
-      if (!options.flatShading && mesh.geometry.hasAttribute("normal")) {
+      if (!mesh.geometry.hasAttribute("normal")) {
         mesh.geometry.computeVertexNormals();
+      } else if (!options.flatShading) {
+        mesh.geometry.computeVertexNormals();
+      }
+
+      if (mesh.geometry.hasAttribute("normal")) {
         mesh.geometry.attributes.normal.needsUpdate = true;
       }
     });
