@@ -1,0 +1,621 @@
+{
+  "version": 1,
+  "app": "mesh-stage",
+  "createdAtIso": "2026-02-19T14:53:46.009Z",
+  "visibleCount": 7,
+  "selectedSlotIndex": 2,
+  "navigationMode": "free",
+  "cameraFov": 23,
+  "environmentPreset": "showcase_grid",
+  "fogSettings": {
+    "enabled": true,
+    "color": "#c5ced8",
+    "density": 0.027,
+    "falloff": 0.83
+  },
+  "gridSettings": {
+    "cellSize": 0.25,
+    "lineWidth": 0.01,
+    "lineStrength": 1,
+    "roughness": 0.95,
+    "edgeTransparency": 16.6,
+    "backgroundColor": "#c5ced8",
+    "backgroundAlpha": 1,
+    "gridBaseColor": "#b7c0ca",
+    "gridBaseAlpha": 1,
+    "gridMajorColor": "#8c98a5",
+    "gridMajorAlpha": 1,
+    "gridMinorColor": "#1f1f1f",
+    "gridMinorAlpha": 0.72
+  },
+  "hdriSettings": {
+    "enabled": true,
+    "showBackground": false,
+    "rotationDeg": 0,
+    "intensity": 0.19,
+    "backgroundIntensity": 1,
+    "backgroundBlur": 0.25
+  },
+  "lightingRigSettings": {
+    "enabled": true,
+    "presetId": "default_neutral",
+    "followSelected": true,
+    "lights": [
+      {
+        "slotIndex": 0,
+        "enabled": true,
+        "type": "directional",
+        "color": "#c2c5d0",
+        "intensity": 3.42,
+        "position": {
+          "x": 6.4,
+          "y": 8.8,
+          "z": 6.2
+        },
+        "castShadow": true
+      },
+      {
+        "slotIndex": 1,
+        "enabled": true,
+        "type": "directional",
+        "color": "#c69895",
+        "intensity": 0.5,
+        "position": {
+          "x": -6.2,
+          "y": 4.3,
+          "z": -4.8
+        },
+        "castShadow": false
+      },
+      {
+        "slotIndex": 2,
+        "enabled": false,
+        "type": "none",
+        "color": "#ffffff",
+        "intensity": 1,
+        "position": {
+          "x": 0,
+          "y": 5,
+          "z": 0
+        },
+        "castShadow": false
+      },
+      {
+        "slotIndex": 3,
+        "enabled": false,
+        "type": "none",
+        "color": "#ffffff",
+        "intensity": 1,
+        "position": {
+          "x": 0,
+          "y": 5,
+          "z": 0
+        },
+        "castShadow": false
+      },
+      {
+        "slotIndex": 4,
+        "enabled": false,
+        "type": "none",
+        "color": "#ffffff",
+        "intensity": 1,
+        "position": {
+          "x": 0,
+          "y": 5,
+          "z": 0
+        },
+        "castShadow": false
+      }
+    ]
+  },
+  "postSettings": {
+    "enabled": false,
+    "grainEnabled": false,
+    "grainAmount": 0,
+    "sharpenEnabled": false,
+    "sharpenAmount": 0.03,
+    "chromaticAberrationEnabled": false,
+    "chromaticAberrationAmount": 0.0004,
+    "ssrEnabled": false,
+    "ssrIntensity": 0.35,
+    "ssrMaxDistance": 120,
+    "ssrThickness": 0.018
+  },
+  "flipNormals": false,
+  "flatShading": true,
+  "wireframeOverlay": false,
+  "wireframeColor": "#d8e8ff",
+  "wireframeThickness": 0.12,
+  "modelStatisticsVisible": true,
+  "modelStatisticsColor": "#ffffff",
+  "gimbalVisible": true,
+  "uploads": [
+    {
+      "uploadId": "upload-260219-character-01-walking-old-6",
+      "filePath": "assets/uploads/upload-260219-character-01-walking-old-6/260219_Character_01_Walking_old.zip",
+      "fileName": "260219_Character_01_Walking_old.zip",
+      "modelPackIds": [
+        "runtime-model-260219-character-01-walking-old-8"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-260219-character-02-drunk-idle-variation-0",
+      "filePath": "assets/uploads/upload-260219-character-02-drunk-idle-variation-0/260219_Character_02_Drunk Idle Variation.zip",
+      "fileName": "260219_Character_02_Drunk Idle Variation.zip",
+      "modelPackIds": [
+        "runtime-model-260219-character-02-drunk-idle-variation-2"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-260219-character-03-dancing-twerk-1",
+      "filePath": "assets/uploads/upload-260219-character-03-dancing-twerk-1/260219_Character_03_Dancing Twerk.zip",
+      "fileName": "260219_Character_03_Dancing Twerk.zip",
+      "modelPackIds": [
+        "runtime-model-260219-character-03-dancing-twerk-3"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-260219-character-04-catwalkwalk-2",
+      "filePath": "assets/uploads/upload-260219-character-04-catwalkwalk-2/260219_Character_04_CatwalkWalk.zip",
+      "fileName": "260219_Character_04_CatwalkWalk.zip",
+      "modelPackIds": [
+        "runtime-model-260219-character-04-catwalkwalk-4"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-260219-character-05-rigmesh-hookpunch-1",
+      "filePath": "assets/uploads/upload-260219-character-05-rigmesh-hookpunch-1/260219_Character_05_RigMesh_HookPunch.zip",
+      "fileName": "260219_Character_05_RigMesh_HookPunch.zip",
+      "modelPackIds": [
+        "runtime-model-260219-character-05-rigmesh-hookpunch-0"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-260219-character-05-rigmesh-hookpunch-2-5",
+      "filePath": "assets/uploads/upload-260219-character-05-rigmesh-hookpunch-2-5/260219_Character_05_RigMesh_HookPunch (2).zip",
+      "fileName": "260219_Character_05_RigMesh_HookPunch (2).zip",
+      "modelPackIds": [
+        "runtime-model-260219-character-05-rigmesh-hookpunch-2-7"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-character-05-output-punch-3",
+      "filePath": "assets/uploads/upload-character-05-output-punch-3/Character_05_Output_Punch.zip",
+      "fileName": "Character_05_Output_Punch.zip",
+      "modelPackIds": [
+        "runtime-model-character-05-output-punch-5"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-character-06-output-karate-4",
+      "filePath": "assets/uploads/upload-character-06-output-karate-4/Character_06_Output_Karate.zip",
+      "fileName": "Character_06_Output_Karate.zip",
+      "modelPackIds": [
+        "runtime-model-character-06-output-karate-6"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-rig-0",
+      "filePath": "assets/uploads/upload-rig-0/Rig.zip",
+      "fileName": "Rig.zip",
+      "modelPackIds": [
+        "runtime-model-rig-1"
+      ],
+      "clipPackIds": []
+    }
+  ],
+  "hdriAsset": {
+    "filePath": "assets/hdri/studio_small_09_1k.exr",
+    "fileName": "studio_small_09_1k.exr"
+  },
+  "slots": [
+    {
+      "slotIndex": 0,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-260219-character-01-walking-old-8",
+        "uploadId": "upload-260219-character-01-walking-old-6"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-260219-character-01-walking-old-8:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-260219-character-01-walking-old-8"
+      },
+      "transform": {
+        "position": {
+          "x": -0.8837655651893852,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 0.8,
+          "y": 0.8,
+          "z": 0.8
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 1,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-260219-character-02-drunk-idle-variation-2",
+        "uploadId": "upload-260219-character-02-drunk-idle-variation-0"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-260219-character-02-drunk-idle-variation-2:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-260219-character-02-drunk-idle-variation-2"
+      },
+      "transform": {
+        "position": {
+          "x": -1.7968823260967872,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1.79,
+        "metallic": 0.1,
+        "roughness": 0.48
+      },
+      "shaderOverrides": [
+        {
+          "channel": "diffuse",
+          "filePath": "assets/shader/slot-2/diffuse-futuristicrobotsuit3dmodel_basecolor.JPEG",
+          "fileName": "futuristicrobotsuit3dmodel_basecolor.JPEG"
+        }
+      ]
+    },
+    {
+      "slotIndex": 2,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-260219-character-03-dancing-twerk-3",
+        "uploadId": "upload-260219-character-03-dancing-twerk-1"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-260219-character-03-dancing-twerk-3:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-260219-character-03-dancing-twerk-3"
+      },
+      "transform": {
+        "position": {
+          "x": 1.118208775267047,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 4
+      },
+      "shaderOverrides": [
+        {
+          "channel": "diffuse",
+          "filePath": "assets/shader/slot-3/diffuse-spacesuit3dmodel_basecolor.JPEG",
+          "fileName": "spacesuit3dmodel_basecolor.JPEG"
+        }
+      ]
+    },
+    {
+      "slotIndex": 3,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-260219-character-04-catwalkwalk-4",
+        "uploadId": "upload-260219-character-04-catwalkwalk-2"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-260219-character-04-catwalkwalk-4:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-260219-character-04-catwalkwalk-4"
+      },
+      "transform": {
+        "position": {
+          "x": -2.8180518494413103,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 2.87
+      },
+      "shaderOverrides": [
+        {
+          "channel": "diffuse",
+          "filePath": "assets/shader/slot-4/diffuse-futuristichumanoidrobot3dmodel_Clone1_basecolor.JPEG",
+          "fileName": "futuristichumanoidrobot3dmodel_Clone1_basecolor.JPEG"
+        }
+      ]
+    },
+    {
+      "slotIndex": 4,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-character-05-output-punch-5",
+        "uploadId": "upload-character-05-output-punch-3"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-character-05-output-punch-5:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-character-05-output-punch-5"
+      },
+      "transform": {
+        "position": {
+          "x": 4.34263812093994,
+          "y": 0,
+          "z": 0.49645561359022894
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": -1.5605799194942234,
+          "z": 0
+        },
+        "scale": {
+          "x": 2,
+          "y": 2,
+          "z": 2
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": [
+        {
+          "channel": "diffuse",
+          "filePath": "assets/shader/slot-5/diffuse-sci-fimecha3dmodel_basecolor.JPEG",
+          "fileName": "sci-fimecha3dmodel_basecolor.JPEG"
+        }
+      ]
+    },
+    {
+      "slotIndex": 5,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-character-06-output-karate-6",
+        "uploadId": "upload-character-06-output-karate-4"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-character-06-output-karate-6:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-character-06-output-karate-6"
+      },
+      "transform": {
+        "position": {
+          "x": 0.23016447299796128,
+          "y": 0.02442554661079574,
+          "z": -0.2113500822317227
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1.78
+      },
+      "shaderOverrides": [
+        {
+          "channel": "diffuse",
+          "filePath": "assets/shader/slot-6/diffuse-futuristicrobot3dmodel_basecolor.JPEG",
+          "fileName": "futuristicrobot3dmodel_basecolor.JPEG"
+        },
+        {
+          "channel": "normal",
+          "filePath": "assets/shader/slot-6/normal-futuristicrobot3dmodel_normal.JPEG",
+          "fileName": "futuristicrobot3dmodel_normal.JPEG"
+        }
+      ]
+    },
+    {
+      "slotIndex": 6,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-260219-character-05-rigmesh-hookpunch-2-7",
+        "uploadId": "upload-260219-character-05-rigmesh-hookpunch-2-5"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-260219-character-05-rigmesh-hookpunch-2-7:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-260219-character-05-rigmesh-hookpunch-2-7"
+      },
+      "transform": {
+        "position": {
+          "x": 2.873161375327542,
+          "y": 0,
+          "z": -0.8983895046328829
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 1.1120529639765633,
+          "z": 0
+        },
+        "scale": {
+          "x": 2,
+          "y": 2,
+          "z": 2
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 7,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 9.399999999999999,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 8,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 11.75,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 9,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 14.100000000000001,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    }
+  ]
+}
