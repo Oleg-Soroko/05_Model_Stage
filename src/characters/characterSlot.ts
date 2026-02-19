@@ -9,7 +9,6 @@ import type {
 
 export type SlotIndex = 0 | 1 | 2 | 3 | 4;
 
-const HIGHLIGHT_EMISSIVE_COLOR = new THREE.Color(0x6f747a);
 const WIREFRAME_COLOR_BOOST = new THREE.Color(0xffffff);
 const DEFAULT_WIREFRAME_COLOR = new THREE.Color(0xd8e8ff);
 const WORLD_BOX = new THREE.Box3();
@@ -260,11 +259,7 @@ function setMaterialHighlight(material: THREE.Material, highlighted: boolean): v
     material.userData.__baseEmissive = candidate.emissive.clone();
   }
   const actualBase = material.userData.__baseEmissive as THREE.Color;
-  if (highlighted) {
-    candidate.emissive.copy(actualBase).lerp(HIGHLIGHT_EMISSIVE_COLOR, 0.18);
-  } else {
-    candidate.emissive.copy(actualBase);
-  }
+  candidate.emissive.copy(actualBase);
 }
 
 function setObjectHighlight(root: THREE.Object3D | null, highlighted: boolean): void {
