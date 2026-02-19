@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "app": "mesh-stage",
+  "createdAtIso": "2026-02-19T14:02:05.725Z",
+  "visibleCount": 3,
+  "selectedSlotIndex": 0,
+  "navigationMode": "free",
+  "cameraFov": 42,
+  "environmentPreset": "showcase_grid",
+  "fogSettings": {
+    "enabled": true,
+    "color": "#c5ced8",
+    "density": 0.06,
+    "falloff": 1
+  },
+  "gridSettings": {
+    "cellSize": 1.4,
+    "lineWidth": 0.012,
+    "lineStrength": 0.38,
+    "roughness": 0.95,
+    "edgeTransparency": 16.6,
+    "backgroundColor": "#c5ced8",
+    "backgroundAlpha": 1,
+    "gridBaseColor": "#b7c0ca",
+    "gridBaseAlpha": 1,
+    "gridMajorColor": "#8c98a5",
+    "gridMajorAlpha": 0.82,
+    "gridMinorColor": "#9da8b4",
+    "gridMinorAlpha": 0.72
+  },
+  "hdriSettings": {
+    "enabled": false,
+    "showBackground": false,
+    "rotationDeg": 0,
+    "intensity": 1,
+    "backgroundIntensity": 1,
+    "backgroundBlur": 0
+  },
+  "lightingRigSettings": {
+    "enabled": true,
+    "presetId": "default_neutral",
+    "followSelected": true,
+    "lights": [
+      {
+        "slotIndex": 0,
+        "enabled": true,
+        "type": "directional",
+        "color": "#fff8f0",
+        "intensity": 1.25,
+        "position": {
+          "x": 6.4,
+          "y": 8.8,
+          "z": 6.2
+        },
+        "castShadow": true
+      },
+      {
+        "slotIndex": 1,
+        "enabled": true,
+        "type": "directional",
+        "color": "#c7d4ea",
+        "intensity": 0.55,
+        "position": {
+          "x": -6.2,
+          "y": 4.3,
+          "z": -4.8
+        },
+        "castShadow": false
+      },
+      {
+        "slotIndex": 2,
+        "enabled": false,
+        "type": "none",
+        "color": "#ffffff",
+        "intensity": 1,
+        "position": {
+          "x": 0,
+          "y": 5,
+          "z": 0
+        },
+        "castShadow": false
+      },
+      {
+        "slotIndex": 3,
+        "enabled": false,
+        "type": "none",
+        "color": "#ffffff",
+        "intensity": 1,
+        "position": {
+          "x": 0,
+          "y": 5,
+          "z": 0
+        },
+        "castShadow": false
+      },
+      {
+        "slotIndex": 4,
+        "enabled": false,
+        "type": "none",
+        "color": "#ffffff",
+        "intensity": 1,
+        "position": {
+          "x": 0,
+          "y": 5,
+          "z": 0
+        },
+        "castShadow": false
+      }
+    ]
+  },
+  "postSettings": {
+    "enabled": false,
+    "grainEnabled": false,
+    "grainAmount": 0.055,
+    "sharpenEnabled": false,
+    "sharpenAmount": 0.2,
+    "chromaticAberrationEnabled": false,
+    "chromaticAberrationAmount": 0.0025,
+    "ssrEnabled": false,
+    "ssrIntensity": 0.35,
+    "ssrMaxDistance": 120,
+    "ssrThickness": 0.018
+  },
+  "flipNormals": false,
+  "flatShading": true,
+  "wireframeOverlay": false,
+  "wireframeColor": "#d8e8ff",
+  "wireframeThickness": 0.12,
+  "modelStatisticsVisible": true,
+  "modelStatisticsColor": "#aeb7c2",
+  "gimbalVisible": true,
+  "uploads": [
+    {
+      "uploadId": "upload-260219-character-05-rigmesh-hookpunch-1",
+      "filePath": "assets/uploads/upload-260219-character-05-rigmesh-hookpunch-1/260219_Character_05_RigMesh_HookPunch.zip",
+      "fileName": "260219_Character_05_RigMesh_HookPunch.zip",
+      "modelPackIds": [
+        "runtime-model-260219-character-05-rigmesh-hookpunch-0"
+      ],
+      "clipPackIds": []
+    },
+    {
+      "uploadId": "upload-rig-0",
+      "filePath": "assets/uploads/upload-rig-0/Rig.zip",
+      "fileName": "Rig.zip",
+      "modelPackIds": [
+        "runtime-model-rig-1"
+      ],
+      "clipPackIds": []
+    }
+  ],
+  "hdriAsset": null,
+  "slots": [
+    {
+      "slotIndex": 0,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-rig-1",
+        "uploadId": "upload-rig-0"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-rig-1:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-rig-1"
+      },
+      "transform": {
+        "position": {
+          "x": 0.7559618143807387,
+          "y": 0,
+          "z": 1.0136286484637251
+        },
+        "rotationRad": {
+          "x": -3.141592653589793,
+          "y": -1.4013788504826044,
+          "z": -3.141592653589793
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 1,
+      "model": {
+        "source": "runtime",
+        "packId": "runtime-model-260219-character-05-rigmesh-hookpunch-0",
+        "uploadId": "upload-260219-character-05-rigmesh-hookpunch-1"
+      },
+      "activeAnimation": {
+        "clipId": "model:runtime-model-260219-character-05-rigmesh-hookpunch-0:0",
+        "label": "mixamo.com",
+        "source": "model",
+        "packId": "runtime-model-260219-character-05-rigmesh-hookpunch-0"
+      },
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 1.1431442360871746,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 4,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": [
+        {
+          "channel": "diffuse",
+          "filePath": "assets/shader/slot-2/diffuse-diffuse-sci-fimecha3dmodel_basecolor.JPEG",
+          "fileName": "diffuse-sci-fimecha3dmodel_basecolor.JPEG"
+        }
+      ]
+    },
+    {
+      "slotIndex": 2,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 2.35,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 3,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 4.700000000000001,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 4,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 7.050000000000001,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 5,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 9.4,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 6,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 11.750000000000002,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 7,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 14.1,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 8,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 16.45,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    },
+    {
+      "slotIndex": 9,
+      "model": {
+        "source": "none",
+        "packId": null,
+        "uploadId": null
+      },
+      "activeAnimation": null,
+      "transform": {
+        "position": {
+          "x": 18.8,
+          "y": 0,
+          "z": 0
+        },
+        "rotationRad": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "shaderMultipliers": {
+        "diffuse": 1,
+        "normal": 1,
+        "metallic": 1,
+        "roughness": 1
+      },
+      "shaderOverrides": []
+    }
+  ]
+}
